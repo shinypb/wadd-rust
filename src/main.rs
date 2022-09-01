@@ -6,15 +6,6 @@ fn main() {
     let args: Vec<String> = env::args().collect();
     let params = &args[1..];
 
-    println!("Hello, world! Args: {}, {:?}", params.len(), params);
-
-    let v = vec!(1, 2, 3, 4, 5);
-    match v.as_slice() {
-        []                       => println!("empty"),
-        [elem]                   => println!("{}", elem),   // => 1
-        [_first, _second, rest @ ..]  => println!("{:?}", rest)  // => &[3, 4, 5]
-    }
-
     match args.as_slice() {
         [_, filename] => handle_command(filename, &String::from("info"), &[]),
         [_, filename, command, rest @ ..] => handle_command(filename, command, rest),
@@ -71,6 +62,30 @@ struct Wad {
     wad_type: WadType
 }
 
+fn parse_header(file: &mut File) -> (WadType, i32, i32) {
+    // https://zdoom.org/wiki/WAD#Header
+
+    let mut header_buf = [0; 12];
+    let _ = file.read_exact(&mut header_buf);
+    println!("Header {:?}", header_buf);
+
+    let v = header_buf[0..4].to_vec();
+    let wad_type = match String::from_utf8(v) {
+        Ok(str) if str.eq("IWAD") => WadType::IWAD,
+        Ok(str) if str.eq("PWAD") => WadType::PWAD,
+        _ => panic!("Invalid WAD; expected signature {:?} to be 'IWAD' ({:?}) or 'PWAD' ({:?})",
+            header_buf[0..4].to_vec(),
+            String::from("IWAD").as_bytes(),
+            String::from("PWAD").as_bytes()
+        )
+    };
+
+    let num_directory_entries = i32::from_le_bytes(header_buf[4..8].try_into().expect("Failed to get bytes from buffer"));
+    let directory_offset = i32::from_le_bytes(header_buf[8..12].try_into().expect("Failed to get bytes from buffer"));
+
+    (wad_type, num_directory_entries, directory_offset)
+}
+
 impl Wad {
     fn open(filename: &str) -> Wad {
         let mut f = match File::open(filename) {
@@ -78,24 +93,12 @@ impl Wad {
             Err(error) => panic!("Failed to open {}: {}", filename, error),
         };
 
-        let mut header_buf = [0; 12];
-        let _ = f.read_exact(&mut header_buf);
-        println!("Header {:?}", header_buf);
-
-        let v = header_buf[0..4].to_vec();
-        let wad_type = match String::from_utf8(v) {
-            Ok(str) if str.eq("IWAD") => WadType::IWAD,
-            Ok(str) if str.eq("PWAD") => WadType::PWAD,
-            _ => panic!("Invalid WAD; expected signature {:?} to be 'IWAD' ({:?}) or 'PWAD' ({:?})",
-                header_buf[0..4].to_vec(),
-                String::from("IWAD").as_bytes(),
-                String::from("PWAD").as_bytes()
-            )
-        };
-        println!("wad_type {:?}", wad_type);
+        let (wad_type, num_directory_entries, directory_offset) = parse_header(&mut f);
+        
+        println!("wad_type={:?}, num_directory_entries={}, directory_offset={}", wad_type, num_directory_entries, directory_offset);
 
         Wad {
-            wad_type: WadType::IWAD
+            wad_type,
         }
     }
 }
