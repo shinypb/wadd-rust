@@ -1,5 +1,6 @@
-use std::borrow::BorrowMut;
-use std::collections::HashMap;
+#![allow(dead_code)]
+#![allow(unused_variables)]
+
 use std::env;
 use std::fs::File;
 use std::io::{Read, Seek};
@@ -204,14 +205,16 @@ fn decode_maps(file: &mut File, directory: &Vec<DirectoryEntry>) -> Vec<MapData>
                 lumps: Vec::new(),
                 linedefs: Vec::new(),
             });
-        } else if (!maps.is_empty()) {
+        } else if !maps.is_empty() {
             let mut current_map = maps.pop().unwrap();
             match d.name.as_str() {
                 "LINEDEFS" => {
-                    // println!("{} LINEDEF {:?}", &current_map.name, d);
-                    let mut linedefs = decode_linedefs(file, d);
+                    let linedefs = decode_linedefs(file, d);
                     println!("{} has {} linedefs", current_map.name, linedefs.len());
-                    current_map.linedefs.append(&mut linedefs);
+                    current_map = MapData {
+                        linedefs,
+                        ..current_map
+                    };
                 }
                 _ => ()
             }
