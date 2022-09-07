@@ -195,7 +195,6 @@ fn decode_maps(file: &mut File, directory: &Vec<DirectoryEntry>) -> Vec<MapData>
     );
 
     let mut maps = Vec::new();
-    let mut current_map: Option<MapData> = None;
 
     // Collect the raw data
     for d in directory.iter() {
@@ -206,33 +205,19 @@ fn decode_maps(file: &mut File, directory: &Vec<DirectoryEntry>) -> Vec<MapData>
                 linedefs: Vec::new(),
             });
         } else if !maps.is_empty() {
-            let mut current_map = maps.pop().unwrap();
+            let mut current_map = maps.last_mut().unwrap();
             match d.name.as_str() {
                 "LINEDEFS" => {
                     let linedefs = decode_linedefs(file, d);
-                    println!("{} has {} linedefs", current_map.name, linedefs.len());
-                    current_map = MapData {
-                        linedefs,
-                        ..current_map
-                    };
+                    current_map.linedefs = linedefs;
                 }
                 _ => ()
             }
-            maps.push(current_map);
         }
     };
 
     for map in maps.iter() {
-        /*
-            map[:linedefs] = unless map[:lumps][:linedefs].nil?
-                linedefs_count = map[:lumps][:linedefs][:size] / LINEDEF_SIZE
-                @chompy.at_pos(map[:lumps][:linedefs][:offset]) do
-                    (0...linedefs_count).map do
-                        @chompy.chomp( LINEDEF_DESC)
-                    end
-                end
-            end
-        */
+        println!("{} has {} linedefs", map.name, map.linedefs.len());
     }
 
     return maps;
