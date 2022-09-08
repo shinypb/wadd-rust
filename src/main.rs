@@ -281,6 +281,17 @@ struct LineDef {
     sidedef_right: i16,
     sidedef_left: i16,
 }
+
+#[derive(Debug)]
+struct SideDef {
+    x: i16,
+    y: i16,
+    upper_texture: [u8; 8],
+    lower_texture: [u8; 8],
+    middle_texture: [u8; 8],
+    sector: u16,
+}
+
 struct Vertex {
     x: i16,
     y: i16,
@@ -311,13 +322,42 @@ fn decode_linedefs(file: &mut File, entry: &DirectoryEntry) -> Vec<LineDef> {
         let _ = file.read_exact(&mut buf);
 
         LineDef {
-            vertex_begin:  i16::from_le_bytes(buf[0..2].try_into().expect("")),
-            vertex_end:    i16::from_le_bytes(buf[2..4].try_into().expect("")),
-            flags:         i16::from_le_bytes(buf[4..6].try_into().expect("")),
-            line_type:     i16::from_le_bytes(buf[6..8].try_into().expect("")),
-            sector_tag:    i16::from_le_bytes(buf[8..10].try_into().expect("")),
-            sidedef_right: i16::from_le_bytes(buf[10..12].try_into().expect("")),
-            sidedef_left:  i16::from_le_bytes(buf[12..14].try_into().expect("")),
+            vertex_begin:  i16::from_le_bytes(buf[0..2].try_into().unwrap()),
+            vertex_end:    i16::from_le_bytes(buf[2..4].try_into().unwrap()),
+            flags:         i16::from_le_bytes(buf[4..6].try_into().unwrap()),
+            line_type:     i16::from_le_bytes(buf[6..8].try_into().unwrap()),
+            sector_tag:    i16::from_le_bytes(buf[8..10].try_into().unwrap()),
+            sidedef_right: i16::from_le_bytes(buf[10..12].try_into().unwrap()),
+            sidedef_left:  i16::from_le_bytes(buf[12..14].try_into().unwrap()),
+        }
+    }).collect();
+}
+
+fn decode_sidedefs(file: &mut File, entry: &DirectoryEntry) -> Vec<SideDef> {
+    const SIDEDEF_SIZE: usize = 30; // = (2 x i16) + (3 x [char; 8]) + u16
+
+    assert!(entry.size % SIDEDEF_SIZE as i32 == 0);
+
+    let _ = file.seek(std::io::SeekFrom::Start(entry.offset as u64));
+
+    fn buf_to_array(buf: &[u8]) -> [u8; 8] {
+        assert!(buf.len() == 8);
+        let mut array = [0 as u8; 8];
+        array.copy_from_slice(buf);
+        return array;
+    }
+
+    let mut buf = [0; SIDEDEF_SIZE];
+    return (0..(entry.size / SIDEDEF_SIZE as i32)).map(|_| {
+        let _ = file.read_exact(&mut buf);
+
+        SideDef {
+            x: i16::from_le_bytes(buf[0..2].try_into().unwrap()),
+            y: i16::from_le_bytes(buf[2..4].try_into().unwrap()),
+            upper_texture: buf[4..12].try_into().unwrap(),
+            lower_texture: buf[12..20].try_into().unwrap(),
+            middle_texture: buf[20..28].try_into().unwrap(),
+            sector: u16::from_le_bytes(buf[28..30].try_into().unwrap()),
         }
     }).collect();
 }
@@ -332,11 +372,11 @@ fn decode_things(file: &mut File, entry: &DirectoryEntry) -> Vec<Thing> {
     return (0..(entry.size / THING_SIZE as i32)).map(|_| {
         let _ = file.read_exact(&mut buf);
         Thing {
-            x: i16::from_le_bytes(buf[0..2].try_into().expect("")),
-            y: i16::from_le_bytes(buf[2..4].try_into().expect("")),
-            angle: i16::from_le_bytes(buf[4..6].try_into().expect("")),
-            thing_type: i16::from_le_bytes(buf[6..8].try_into().expect("")),
-            spawn_flags: i16::from_le_bytes(buf[8..10].try_into().expect("")),
+            x: i16::from_le_bytes(buf[0..2].try_into().unwrap()),
+            y: i16::from_le_bytes(buf[2..4].try_into().unwrap()),
+            angle: i16::from_le_bytes(buf[4..6].try_into().unwrap()),
+            thing_type: i16::from_le_bytes(buf[6..8].try_into().unwrap()),
+            spawn_flags: i16::from_le_bytes(buf[8..10].try_into().unwrap()),
         }
     }).collect();
 }
@@ -351,8 +391,8 @@ fn decode_vertexes(file: &mut File, entry: &DirectoryEntry) -> Vec<Vertex> {
     return (0..(entry.size / VERTEX_SIZE as i32)).map(|_| {
         let _ = file.read_exact(&mut buf);
         Vertex {
-            x: i16::from_le_bytes(buf[0..2].try_into().expect("")),
-            y: i16::from_le_bytes(buf[2..4].try_into().expect("")),
+            x: i16::from_le_bytes(buf[0..2].try_into().unwrap()),
+            y: i16::from_le_bytes(buf[2..4].try_into().unwrap()),
         }
     }).collect();
 }
@@ -394,7 +434,7 @@ fn decode_maps(file: &mut File, directory: &Vec<DirectoryEntry>) -> Vec<MapData>
     }
 
     // Create MapData instances based on the lumps
-    return map_lumps.iter().map(|(map_name, lumps)| {
+    let mut maps: Vec<MapData> = map_lumps.iter().map(|(map_name, lumps)| {
         let linedefs = lumps
             .get(&String::from("LINEDEFS"))
             .map(|d| { decode_linedefs(file, d) })
@@ -407,6 +447,10 @@ fn decode_maps(file: &mut File, directory: &Vec<DirectoryEntry>) -> Vec<MapData>
             .get(&String::from("VERTEXES"))
             .map(|d| { decode_vertexes(file, d) })
             .unwrap_or(vec!());
+        let sidedefs = lumps
+            .get(&String::from("SIDEDEFS"))
+            .map(|d| { decode_sidedefs(file, d) })
+            .unwrap_or(vec!());
 
         MapData {
             name: map_name.to_string(),
@@ -415,6 +459,10 @@ fn decode_maps(file: &mut File, directory: &Vec<DirectoryEntry>) -> Vec<MapData>
             vertexes,
         }
     }).collect();
+
+    maps.sort_by_key(|map| map.name.clone());
+
+    return maps;
 }
 
 impl Wad {
