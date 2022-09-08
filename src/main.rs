@@ -151,7 +151,6 @@ struct Thing {
 
 struct MapData {
     name: String,
-    lumps: Vec<DirectoryEntry>,
     linedefs: Vec<LineDef>,
 }
 
@@ -195,13 +194,13 @@ fn decode_maps(file: &mut File, directory: &Vec<DirectoryEntry>) -> Vec<MapData>
         String::from("VERTEXES"),
     );
 
-    let mut map_lumps: HashMap<String, Vec<DirectoryEntry>> = HashMap::new();
-
+    // Collect all of the lumps on a per-map basis
+    let mut map_lumps: HashMap<String, HashMap<String, DirectoryEntry>> = HashMap::new();
     for mut i in 0..directory.len() {
         let d = directory.get(i).unwrap();
         if d.size == 0 && d.offset > 0 { // this lump is the start of a map
             let map_name = String::from(&d.name);
-            let mut lumps = vec!();
+            let mut lumps = HashMap::new();
 
             loop {
                 i += 1;
@@ -209,44 +208,25 @@ fn decode_maps(file: &mut File, directory: &Vec<DirectoryEntry>) -> Vec<MapData>
                 if !map_lump_names.contains(&d.name) {
                     break
                 }
-                lumps.push(d.clone());
+                lumps.insert(d.name.to_string(), d.clone());
             }
 
             map_lumps.insert(map_name, lumps);
         }
     }
 
-    // // Collect the raw data
-    // for d in directory.iter() {
-    //     if d.size == 0 && d.offset > 0 { // this lump is the start of a map
-    //         current_map_name = Some(String::from(&d.name));
-    //         map_lumps.insert(String::from(&d.name), Vec::new());
-    //     } else if map_lumps.contains_key(&d.name) {
-    //         assert!(current_map_name.is_some());
-    //         let mut current_map_lumps = map_lumps.get(&current_map_name.bo.unwrap()).unwrap();
-
-    //         // println!("{} yank {}", current_map_name.unwrap(), d.name);
-    //         current_map_lumps.push(d.clone());
-    //         // match d.name.as_str() {
-    //         //     "LINEDEFS" => current_map.linedefs = decode_linedefs(file, d)
-    //         //     // "THINGS" => 
-    //         //     _ => ()
-    //         // }
-    //     }
-    // };
-
-    let mut maps = Vec::new();
-
-    for (map_name, lumps) in map_lumps.iter() {
-        // TODO create MapData struct
-        let linedefs_lump = lumps.iter().find(|l| l.name == String::from("LINEDEFS"));
+    // Create MapData instances based on the lumps
+    return map_lumps.iter().map(|(map_name, lumps)| {
+        let linedefs_lump = lumps.get(&String::from("LINEDEFS"));
         let linedefs = linedefs_lump.map(|d| {
             decode_linedefs(file, d)
-        }).unwrap_or_else(|| { vec!() });
-        println!("{} has {} lumps ({} linedefs)", map_name, lumps.len(), linedefs.len());
-    }
+        }).unwrap_or(vec!());
 
-    return maps;
+        MapData {
+            name: map_name.to_string(),
+            linedefs
+        }
+    }).collect();
 }
 
 impl Wad {
@@ -261,6 +241,10 @@ impl Wad {
         let directory = decode_directory(&mut file, directory_offset, num_directory_entries);
 
         let maps = decode_maps(&mut file, &directory);
+        println!("Got {} maps:", maps.len());
+        for map in maps {
+            println!("- {} ({} linedefs)", map.name, map.linedefs.len());
+        }
 
         Wad {
             directory,
