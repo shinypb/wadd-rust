@@ -42,24 +42,162 @@ fn print_usage_and_exit(executable: &String) {
     println!("usage: {} /path/to/a/doom.wad command", executable);
 }
 
-enum MapLumpType {
-    Blockmap,
-    LineDefs,
-    Nodes,
-    Reject,
-    Scripts,
-    Sectors,
-    Segs,
-    SideDefs,
-    SSectors,
-    Things,
-    Vertexes,
-}
-
 #[derive(Debug)]
 enum WadType {
     IWAD,
     PWAD
+}
+
+enum Things {
+    Player1Start = 1,
+    Player2Start = 2,
+    Player3Start = 3,
+    Player4Start = 4,
+    BlueCard = 5,
+    YellowCard = 6,
+    SpiderMastermind = 7,
+    Backpack = 8,
+    ShotgunGuy = 9,
+    GibbedMarine = 10,
+    DeathmatchStart = 11,
+    GibbedMarineExtra = 12,
+    RedCard = 13,
+    DeadMarine = 15,
+    Cyberdemon = 16,
+    CellPack = 17,
+    DeadZombieMan = 18,
+    DeadShotgunGuy = 19,
+    DeadDoomImp = 20,
+    DeadDemon = 21,
+    DeadCacodemon = 22,
+    DeadLostSoul = 23,
+    Gibs = 24,
+    DeadStick = 25,
+    LiveStick = 26,
+    HeadOnAstick = 27,
+    HeadsOnAstick = 28,
+    HeadCandles = 29,
+    TallGreenColumn = 30,
+    ShortGreenColumn = 31,
+    TallRedColumn = 32,
+    ShortRedColumn = 33,
+    Candlestick = 34,
+    Candelabra = 35,
+    HeartColumn = 36,
+    SkullColumn = 37,
+    RedSkull = 38,
+    YellowSkull = 39,
+    BlueSkull = 40,
+    EvilEye = 41,
+    FloatingSkull = 42,
+    TorchTree = 43,
+    BlueTorch = 44,
+    GreenTorch = 45,
+    RedTorch = 46,
+    Stalagtite = 47,
+    TechPillar = 48,
+    BloodyTwitch = 49,
+    Meat2 = 50,
+    Meat3 = 51,
+    Meat4 = 52,
+    Meat5 = 53,
+    BigTree = 54,
+    ShortBlueTorch = 55,
+    ShortGreenTorch = 56,
+    ShortRedTorch = 57,
+    Spectre = 58,
+    NonsolidMeat2 = 59,
+    NonsolidMeat4 = 60,
+    NonsolidMeat3 = 61,
+    NonsolidMeat5 = 62,
+    NonsolidTwitch = 63,
+    Archvile = 64, // Doom 2
+    ChaingunGuy = 65, // Doom 2
+    Revenant = 66, // Doom 2
+    Fatso = 67, // Doom 2
+    Arachnotron = 68, // Doom 2
+    HellKnight = 69, // Doom 2
+    BurningBarrel = 70, // Doom 2
+    PainElemental = 71, // Doom 2
+    CommanderKeen = 72, // Doom 2
+    HangNoGuts = 73, // Doom 2
+    HangBnoBrain = 74, // Doom 2
+    HangTlookingDown = 75, // Doom 2
+    HangTskull = 76, // Doom 2
+    HangTlookingUp = 77, // Doom 2
+    HangTnoBrain = 78, // Doom 2
+    ColonGibs = 79, // Doom 2
+    SmallBloodPool = 80, // Doom 2
+    BrainStem = 81, // Doom 2
+    SuperShotgun = 82, // Doom 2
+    Megasphere = 83, // Doom 2
+    WolfensteinSs = 84, // Doom 2
+    TechLamp = 85, // Doom 2
+    TechLamp2 = 86, // Doom 2
+    BossTarget = 87, // Doom 2
+    BossBrain = 88, // Doom 2
+    BossEye = 89, // Doom 2
+    Zbridge = 118,
+    Shotgun = 2001,
+    Chaingun = 2002,
+    RocketLauncher = 2003,
+    PlasmaRifle = 2004,
+    Chainsaw = 2005,
+    Bfg9000 = 2006,
+    Clip = 2007,
+    Shell = 2008,
+    RocketAmmo = 2010,
+    StimPack = 2011,
+    MediKit = 2012,
+    SoulSphere = 2013,
+    HealthBonus = 2014,
+    ArmorBonus = 2015,
+    GreenArmor = 2018,
+    BlueArmor = 2019,
+    InvulnerabilitySphere = 2022,
+    Berserk = 2023,
+    BlurSphere = 2024,
+    RadSuit = 2025,
+    AllMap = 2026,
+    Column = 2028,
+    ExplosiveBarrel = 2035,
+    Infrared = 2045,
+    RocketBox = 2046,
+    Cell = 2047,
+    ClipBox = 2048,
+    ShellBox = 2049,
+    DoomImp = 3001,
+    Demon = 3002,
+    BaronOfHell = 3003,
+    ZombieMan = 3004,
+    Cacodemon = 3005,
+    LostSoul = 3006,
+    Pistol = 5010,
+    Stalagmite = 5050,
+    StealthArachnotron = 9050, // Doom 2
+    StealthArchvile = 9051, // Doom 2
+    StealthBaron = 9052,
+    StealthCacodemon = 9053,
+    StealthChaingunGuy = 9054, // Doom 2
+    StealthDemon = 9055,
+    StealthHellKnight = 9056, // Doom 2
+    StealthDoomImp = 9057,
+    StealthFatso = 9058, // Doom 2
+    StealthRevenant = 9059, // Doom 2
+    StealthShotgunGuy = 9060,
+    StealthZombieMan = 9061,
+    ScriptedMarine = 9100,
+    MarineFist = 9101,
+    MarineBerserk = 9102,
+    MarineChainsaw = 9103,
+    MarinePistol = 9104,
+    MarineShotgun = 9105,
+    MarineSsg = 9106,
+    MarineChaingun = 9107,
+    MarineRocket = 9108,
+    MarinePlasma = 9109,
+    MarineRailgun = 9110,
+    MarineBfg = 9111,
 }
 
 #[derive(Clone, Debug)]
@@ -144,39 +282,79 @@ struct LineDef {
     sidedef_left: i16,
 }
 struct Vertex {
-
+    x: i16,
+    y: i16,
 }
 struct Thing {
+    x: i16,
+    y: i16,
+    angle: i16,
+    thing_type: i16,
+    spawn_flags: i16,
 }
 
 struct MapData {
     name: String,
     linedefs: Vec<LineDef>,
+    things: Vec<Thing>,
+    vertexes: Vec<Vertex>,
 }
 
 fn decode_linedefs(file: &mut File, entry: &DirectoryEntry) -> Vec<LineDef> {
-    let linedef_size = 14; // 7 x i16 per linedef
-    assert!(entry.size % linedef_size == 0); // 7 16-bit ints
+    const LINEDEF_SIZE: usize = 7 * std::mem::size_of::<i16>();
+    assert!(entry.size % LINEDEF_SIZE as i32 == 0);
 
     let _ = file.seek(std::io::SeekFrom::Start(entry.offset as u64));
 
-    let mut linedefs: Vec<LineDef> = vec!();
-    let mut buf = [0; 14];
-    for i in 0..(entry.size / linedef_size) {
+    let mut buf = [0; LINEDEF_SIZE];
+    return (0..(entry.size / LINEDEF_SIZE as i32)).map(|_| {
         let _ = file.read_exact(&mut buf);
 
-        linedefs.push(LineDef {
-            vertex_begin:  i16::from_le_bytes(buf[0..2].try_into().expect("Failed to get bytes from buffer")),
-            vertex_end:    i16::from_le_bytes(buf[2..4].try_into().expect("Failed to get bytes from buffer")),
-            flags:         i16::from_le_bytes(buf[4..6].try_into().expect("Failed to get bytes from buffer")),
-            line_type:     i16::from_le_bytes(buf[6..8].try_into().expect("Failed to get bytes from buffer")),
-            sector_tag:    i16::from_le_bytes(buf[8..10].try_into().expect("Failed to get bytes from buffer")),
-            sidedef_right: i16::from_le_bytes(buf[10..12].try_into().expect("Failed to get bytes from buffer")),
-            sidedef_left:  i16::from_le_bytes(buf[12..14].try_into().expect("Failed to get bytes from buffer")),
-        })
-    }
+        LineDef {
+            vertex_begin:  i16::from_le_bytes(buf[0..2].try_into().expect("")),
+            vertex_end:    i16::from_le_bytes(buf[2..4].try_into().expect("")),
+            flags:         i16::from_le_bytes(buf[4..6].try_into().expect("")),
+            line_type:     i16::from_le_bytes(buf[6..8].try_into().expect("")),
+            sector_tag:    i16::from_le_bytes(buf[8..10].try_into().expect("")),
+            sidedef_right: i16::from_le_bytes(buf[10..12].try_into().expect("")),
+            sidedef_left:  i16::from_le_bytes(buf[12..14].try_into().expect("")),
+        }
+    }).collect();
+}
 
-    return linedefs;
+fn decode_things(file: &mut File, entry: &DirectoryEntry) -> Vec<Thing> {
+    const THING_SIZE: usize = 5 * std::mem::size_of::<i16>();
+    assert!(entry.size % THING_SIZE as i32 == 0);
+
+    let _ = file.seek(std::io::SeekFrom::Start(entry.offset as u64));
+
+    let mut buf = [0; THING_SIZE];
+    return (0..(entry.size / THING_SIZE as i32)).map(|_| {
+        let _ = file.read_exact(&mut buf);
+        Thing {
+            x: i16::from_le_bytes(buf[0..2].try_into().expect("")),
+            y: i16::from_le_bytes(buf[2..4].try_into().expect("")),
+            angle: i16::from_le_bytes(buf[4..6].try_into().expect("")),
+            thing_type: i16::from_le_bytes(buf[6..8].try_into().expect("")),
+            spawn_flags: i16::from_le_bytes(buf[8..10].try_into().expect("")),
+        }
+    }).collect();
+}
+
+fn decode_vertexes(file: &mut File, entry: &DirectoryEntry) -> Vec<Vertex> {
+    const VERTEX_SIZE: usize = 2 * std::mem::size_of::<i16>();
+    assert!(entry.size % VERTEX_SIZE as i32 == 0);
+
+    let _ = file.seek(std::io::SeekFrom::Start(entry.offset as u64));
+
+    let mut buf = [0; VERTEX_SIZE];
+    return (0..(entry.size / VERTEX_SIZE as i32)).map(|_| {
+        let _ = file.read_exact(&mut buf);
+        Vertex {
+            x: i16::from_le_bytes(buf[0..2].try_into().expect("")),
+            y: i16::from_le_bytes(buf[2..4].try_into().expect("")),
+        }
+    }).collect();
 }
 
 fn decode_maps(file: &mut File, directory: &Vec<DirectoryEntry>) -> Vec<MapData> {
@@ -217,14 +395,24 @@ fn decode_maps(file: &mut File, directory: &Vec<DirectoryEntry>) -> Vec<MapData>
 
     // Create MapData instances based on the lumps
     return map_lumps.iter().map(|(map_name, lumps)| {
-        let linedefs_lump = lumps.get(&String::from("LINEDEFS"));
-        let linedefs = linedefs_lump.map(|d| {
-            decode_linedefs(file, d)
-        }).unwrap_or(vec!());
+        let linedefs = lumps
+            .get(&String::from("LINEDEFS"))
+            .map(|d| { decode_linedefs(file, d) })
+            .unwrap_or(vec!());
+        let things = lumps
+            .get(&String::from("THINGS"))
+            .map(|d| { decode_things(file, d) })
+            .unwrap_or(vec!());
+        let vertexes = lumps
+            .get(&String::from("VERTEXES"))
+            .map(|d| { decode_vertexes(file, d) })
+            .unwrap_or(vec!());
 
         MapData {
             name: map_name.to_string(),
-            linedefs
+            linedefs,
+            things,
+            vertexes,
         }
     }).collect();
 }
@@ -243,7 +431,7 @@ impl Wad {
         let maps = decode_maps(&mut file, &directory);
         println!("Got {} maps:", maps.len());
         for map in maps {
-            println!("- {} ({} linedefs)", map.name, map.linedefs.len());
+            println!("- {} ({} linedefs, {} things, {} vertexes)", map.name, map.linedefs.len(), map.things.len(), map.vertexes.len());
         }
 
         Wad {
