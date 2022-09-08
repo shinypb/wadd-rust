@@ -1,6 +1,7 @@
 #![allow(dead_code)]
 #![allow(unused_variables)]
 
+use std::collections::HashMap;
 use std::env;
 use std::fs::File;
 use std::io::{Read, Seek};
@@ -61,7 +62,7 @@ enum WadType {
     PWAD
 }
 
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 struct DirectoryEntry {
     name: String,
     offset: i32,
@@ -180,7 +181,7 @@ fn decode_linedefs(file: &mut File, entry: &DirectoryEntry) -> Vec<LineDef> {
 }
 
 fn decode_maps(file: &mut File, directory: &Vec<DirectoryEntry>) -> Vec<MapData> {
-    let map_lumps = vec!(
+    let map_lump_names = vec!(
         String::from("BLOCKMAP"),
         String::from("LINEDEFS"),
         String::from("NODES"),
@@ -194,30 +195,55 @@ fn decode_maps(file: &mut File, directory: &Vec<DirectoryEntry>) -> Vec<MapData>
         String::from("VERTEXES"),
     );
 
+    let mut map_lumps: HashMap<String, Vec<DirectoryEntry>> = HashMap::new();
+
+    for mut i in 0..directory.len() {
+        let d = directory.get(i).unwrap();
+        if d.size == 0 && d.offset > 0 { // this lump is the start of a map
+            let map_name = String::from(&d.name);
+            let mut lumps = vec!();
+
+            loop {
+                i += 1;
+                let d = directory.get(i).unwrap();
+                if !map_lump_names.contains(&d.name) {
+                    break
+                }
+                lumps.push(d.clone());
+            }
+
+            map_lumps.insert(map_name, lumps);
+        }
+    }
+
+    // // Collect the raw data
+    // for d in directory.iter() {
+    //     if d.size == 0 && d.offset > 0 { // this lump is the start of a map
+    //         current_map_name = Some(String::from(&d.name));
+    //         map_lumps.insert(String::from(&d.name), Vec::new());
+    //     } else if map_lumps.contains_key(&d.name) {
+    //         assert!(current_map_name.is_some());
+    //         let mut current_map_lumps = map_lumps.get(&current_map_name.bo.unwrap()).unwrap();
+
+    //         // println!("{} yank {}", current_map_name.unwrap(), d.name);
+    //         current_map_lumps.push(d.clone());
+    //         // match d.name.as_str() {
+    //         //     "LINEDEFS" => current_map.linedefs = decode_linedefs(file, d)
+    //         //     // "THINGS" => 
+    //         //     _ => ()
+    //         // }
+    //     }
+    // };
+
     let mut maps = Vec::new();
 
-    // Collect the raw data
-    for d in directory.iter() {
-        if d.size == 0 && d.offset > 0 { // this lump is the start of a map
-            maps.push(MapData {
-                name: String::from(&d.name),
-                lumps: Vec::new(),
-                linedefs: Vec::new(),
-            });
-        } else if !maps.is_empty() {
-            let mut current_map = maps.last_mut().unwrap();
-            match d.name.as_str() {
-                "LINEDEFS" => {
-                    let linedefs = decode_linedefs(file, d);
-                    current_map.linedefs = linedefs;
-                }
-                _ => ()
-            }
-        }
-    };
-
-    for map in maps.iter() {
-        println!("{} has {} linedefs", map.name, map.linedefs.len());
+    for (map_name, lumps) in map_lumps.iter() {
+        // TODO create MapData struct
+        let linedefs_lump = lumps.iter().find(|l| l.name == String::from("LINEDEFS"));
+        let linedefs = linedefs_lump.map(|d| {
+            decode_linedefs(file, d)
+        }).unwrap_or_else(|| { vec!() });
+        println!("{} has {} lumps ({} linedefs)", map_name, lumps.len(), linedefs.len());
     }
 
     return maps;
