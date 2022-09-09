@@ -18,28 +18,46 @@ fn main() {
 }
 
 fn handle_command(filename: &String, command: &str, params: &[String]) {
-    println!("Filename: {}, Command: {}, Params: {:?}", filename, command, params);
-
     let wad = Wad::open(filename);
 
     match command {
-        "list-maps" => list_maps(&wad),
+        "maps" => list_maps(&wad),
         "info" => show_info(&wad),
         _ => {
-            println!("Sorry, I don't know how to {}", command);
+            println!("Sorry, I don't know how to {}.", command);
             std::process::exit(1);
         }
     }
 }
 
-fn list_maps(_wad: &Wad) {
+fn list_maps(wad: &Wad) {
+    println!("{} maps:", wad.maps.len());
+    for map in &wad.maps {
+        println!("- {} ({} linedefs, {} things, {} vertexes)", map.name, map.linedefs.len(), map.things.len(), map.vertexes.len());
+    }
 }
 
-fn show_info(_wad: &Wad) {
+fn show_info(wad: &Wad) {
+    let wad_type = match wad.wad_type {
+        WadType::IWAD => "IWAD",
+        WadType::PWAD => "PWAD",
+    };
+    println!("{} with {} lumps in its directory:", &wad_type, wad.directory.len());
+    for d in &wad.directory {
+        if d.size > 0 {
+            println!("- {: <8}\t{} bytes starting at {}", d.name, d.size, d.offset);
+        } else {
+            println!("- {: <8}\tempty lump", d.name);
+        }
+    }
+
 }
 
 fn print_usage_and_exit(executable: &String) {
-    println!("usage: {} /path/to/a/doom.wad command", executable);
+    println!("usage: {} /path/to/a/doom.wad [command]", executable);
+    println!("\nAvailable commands:");
+    println!("- info: prints info about the WAD. This is the default if a command is not specified.");
+    println!("- maps: prints a list of the maps in the WAD.");
 }
 
 #[derive(Debug)]
@@ -209,6 +227,7 @@ struct DirectoryEntry {
 
 struct Wad {
     directory: Vec<DirectoryEntry>,
+    maps: Vec<MapData>,
     wad_type: WadType
 }
 
@@ -217,7 +236,6 @@ fn decode_header(file: &mut File) -> (WadType, i32, i32) {
 
     let mut header_buf = [0; 12];
     let _ = file.read_exact(&mut header_buf);
-    println!("Header {:?}", header_buf);
 
     let v = header_buf[0..4].to_vec();
     let wad_type = match String::from_utf8(v) {
@@ -252,8 +270,6 @@ fn decode_directory(file: &mut File, offset: i32, num_entries: i32) -> Vec<Direc
         let lump_offset = i32::from_le_bytes(entry_buf[0..4].try_into().expect("Failed to get bytes from buffer"));
         let lump_size = i32::from_le_bytes(entry_buf[4..8].try_into().expect("Failed to get bytes from buffer"));
         let lump_name = buf_to_string(entry_buf[8..16].to_vec());
-
-        println!("Entry #{}: {}, {} bytes starting at {}", i, lump_name, lump_size, lump_offset);
 
         entries.push(DirectoryEntry {
             name: lump_name,
@@ -473,17 +489,12 @@ impl Wad {
         };
 
         let (wad_type, directory_offset, num_directory_entries) = decode_header(&mut file);
-        println!("wad_type={:?}, num_directory_entries={}, directory_offset={}", wad_type, num_directory_entries, directory_offset);
         let directory = decode_directory(&mut file, directory_offset, num_directory_entries);
-
         let maps = decode_maps(&mut file, &directory);
-        println!("Got {} maps:", maps.len());
-        for map in maps {
-            println!("- {} ({} linedefs, {} things, {} vertexes)", map.name, map.linedefs.len(), map.things.len(), map.vertexes.len());
-        }
 
         Wad {
             directory,
+            maps,
             wad_type,
         }
     }
