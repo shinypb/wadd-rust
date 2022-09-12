@@ -5,6 +5,7 @@ use std::collections::HashMap;
 use std::env;
 use std::fs::File;
 use std::io::{Read, Seek};
+use std::process::exit;
 
 fn main() {
     let args: Vec<String> = env::args().collect();
@@ -13,7 +14,7 @@ fn main() {
     match args.as_slice() {
         [_, filename] => handle_command(filename, &String::from("info"), &[]),
         [_, filename, command, rest @ ..] => handle_command(filename, command, rest),
-        _ => print_usage_and_exit(&args[0])
+        _ => print_usage_and_exit()
     }
 }
 
@@ -21,13 +22,28 @@ fn handle_command(filename: &String, command: &str, params: &[String]) {
     let wad = Wad::open(filename);
 
     match command {
-        "maps" => list_maps(&wad),
         "info" => show_info(&wad),
+        "maps" => list_maps(&wad),
+        "svg" => {
+            match params.first() {
+                Some(map_name) => extract_map(&wad, &map_name),
+                None => {
+                    println!("Error: must provide a map name.\n");
+                    print_usage_and_exit();
+                }
+            }
+        }
         _ => {
             println!("Sorry, I don't know how to {}.", command);
             std::process::exit(1);
         }
     }
+}
+
+fn extract_map(wad: &Wad, map_name: &str) {
+    println!("Want to extract {}", &map_name);
+    let map = wad.maps.iter().find(|map| map.name == map_name).expect("That map does not exist.");
+    println!("Got map {}", map.name);
 }
 
 fn list_maps(wad: &Wad) {
@@ -53,11 +69,19 @@ fn show_info(wad: &Wad) {
 
 }
 
-fn print_usage_and_exit(executable: &String) {
+fn print_usage_and_exit() {
+    let args: Vec<String> = env::args().collect();
+    let executable = args.first().unwrap();
     println!("usage: {} /path/to/a/doom.wad [command]", executable);
     println!("\nAvailable commands:");
-    println!("- info: prints info about the WAD. This is the default if a command is not specified.");
-    println!("- maps: prints a list of the maps in the WAD.");
+    println!("- info");
+    println!("  prints info about the WAD. This is the default if a command is not specified.");
+    println!("- maps");
+    println!("  prints a list of the maps in the WAD.");
+    println!("- svg [map name]");
+    println!("  extracts the given map to an SVG file in the current directory with the filename [map name].svg");
+
+    exit(255);
 }
 
 #[derive(Debug)]
