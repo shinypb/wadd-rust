@@ -44,6 +44,54 @@ fn extract_map(wad: &Wad, map_name: &str) {
     println!("Want to extract {}", &map_name);
     let map = wad.maps.iter().find(|map| map.name == map_name).expect("That map does not exist.");
     println!("Got map {}", map.name);
+
+    let lines: Vec<(Vertex, Vertex)> = map.linedefs.iter().map(|linedef| {
+        let v1 = map.vertexes[linedef.vertex_begin as usize];
+        let v2 = map.vertexes[linedef.vertex_end as usize];
+        
+        (v1, v2)
+    }).collect();
+
+    assert!(lines.len() > 0);
+
+    // Figure out which offsets to use to put the map in the top left corner
+    let min_x: i16 = lines
+        .iter()
+        .map(|line| line.0.x.min(line.1.x))
+        .min()
+        .unwrap();
+    let max_x: i16 = lines
+        .iter()
+        .map(|line| line.0.x.max(line.1.x))
+        .max()
+        .unwrap();
+    let min_y: i16 = lines
+        .iter()
+        .map(|line| line.0.y.min(line.1.y))
+        .min()
+        .unwrap();
+    let max_y: i16 = lines
+        .iter()
+        .map(|line| line.0.y.max(line.1.y))
+        .max()
+        .unwrap();
+
+    let offset_x = 0 - min_x;
+    let offset_y = 0 - min_y;
+    let height = max_y - min_y;
+    let width = max_x - min_x;
+    println!("min {}, {}\nmax {}, {}", min_x, min_y, max_x, max_y);
+    println!("offset {}, {}\nsize {}, {}", offset_x, offset_y, width, height);
+
+    for (from, to) in lines {
+        println!("<line x1=\"{}\" y1=\"{}\" x2=\"{}\" y2=\"{}\" style=\"stroke:rgb(255,0,0);stroke-width:2;\" />",
+            from.x + offset_x,
+            from.y + offset_y,
+            to.x + offset_x,
+            to.y + offset_y,
+        );
+    }
+
 }
 
 fn list_maps(wad: &Wad) {
@@ -332,6 +380,7 @@ struct SideDef {
     sector: u16,
 }
 
+#[derive(Clone, Copy)]
 struct Vertex {
     x: i16,
     y: i16,
