@@ -44,9 +44,7 @@ fn handle_command(filename: &String, command: &str, params: &[String]) {
 }
 
 fn extract_map(wad: &Wad, map_name: &str) {
-    println!("Want to extract {}", &map_name);
     let map = wad.maps.iter().find(|map| map.name == map_name).expect("That map does not exist.");
-    println!("Got map {}", map.name);
 
     let lines: Vec<(Vertex, Vertex)> = map.linedefs.iter().map(|linedef| {
         let v1 = map.vertexes[linedef.vertex_begin as usize];
@@ -83,8 +81,6 @@ fn extract_map(wad: &Wad, map_name: &str) {
     let offset_y = 0 - min_y;
     let height = max_y - min_y;
     let width = max_x - min_x;
-    println!("min {}, {}\nmax {}, {}", min_x, min_y, max_x, max_y);
-    println!("offset {}, {}\nsize {}, {}", offset_x, offset_y, width, height);
 
     let mut doc = Document::new()
         .set("viewBox", format!("0 0 {} {}", width, height));
@@ -118,7 +114,7 @@ fn extract_map(wad: &Wad, map_name: &str) {
     let filename = format!("{}.html", &map_name);
     let mut output = File::create(&filename).expect("Failed to create file");
     match write!(output, "{}", html) {
-        Ok(_) => println!("Wrote to {}", &filename),
+        Ok(_) => (),
         Err(error) => panic!("Write failed: {}", error),
     }
 
