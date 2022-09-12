@@ -4,8 +4,11 @@
 use std::collections::HashMap;
 use std::env;
 use std::fs::File;
-use std::io::{Read, Seek};
+use std::io::{Read, Seek, Write};
 use std::process::exit;
+
+use svg::Document;
+use svg::node::element::Line;
 
 fn main() {
     let args: Vec<String> = env::args().collect();
@@ -83,13 +86,40 @@ fn extract_map(wad: &Wad, map_name: &str) {
     println!("min {}, {}\nmax {}, {}", min_x, min_y, max_x, max_y);
     println!("offset {}, {}\nsize {}, {}", offset_x, offset_y, width, height);
 
+    let mut doc = Document::new()
+        .set("viewBox", format!("0 0 {} {}", width, height));
+
     for (from, to) in lines {
-        println!("<line x1=\"{}\" y1=\"{}\" x2=\"{}\" y2=\"{}\" style=\"stroke:rgb(255,0,0);stroke-width:2;\" />",
-            from.x + offset_x,
-            from.y + offset_y,
-            to.x + offset_x,
-            to.y + offset_y,
-        );
+        let line = Line::new()
+            .set("x1", from.x + offset_x)
+            .set("y1", from.y + offset_y)
+            .set("x2", to.x + offset_x)
+            .set("y2", to.y + offset_y);
+        doc = doc.add(line);
+    }
+
+    let html = format!(r#"<!DOCTYPE html>
+<html lang="en-US">
+<head>
+    <meta charset="utf-8">
+    <style>
+        line {{
+            stroke: red;
+            stroke-width: 2;
+        }}
+    </style>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+</head>
+<body>
+    {}
+</body>
+"#, doc.to_string());
+
+    let filename = format!("{}.html", &map_name);
+    let mut output = File::create(&filename).expect("Failed to create file");
+    match write!(output, "{}", html) {
+        Ok(_) => println!("Wrote to {}", &filename),
+        Err(error) => panic!("Write failed: {}", error),
     }
 
 }
