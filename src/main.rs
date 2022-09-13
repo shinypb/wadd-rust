@@ -123,7 +123,7 @@ fn extract_map(wad: &Wad, map_name: &str) {
 fn list_maps(wad: &Wad) {
     println!("{} maps:", wad.maps.len());
     for map in &wad.maps {
-        println!("- {} ({} linedefs, {} things, {} vertexes)", map.name, map.linedefs.len(), map.things.len(), map.vertexes.len());
+        println!("- {} ({} linedefs, {} sectors, {} things, {} vertexes)", map.name, map.linedefs.len(), map.sectors.len(), map.things.len(), map.vertexes.len());
     }
 }
 
@@ -397,6 +397,17 @@ struct LineDef {
 }
 
 #[derive(Debug)]
+struct Sector {
+    floor_height: i16,
+    ceiling_height: i16,
+    floor_texture: [u8; 8],
+    ceiling_texture: [u8; 8],
+    light_level: i16, // Vanilla Doom rounded the light level to the nearest multiple of 8, ZDoom shows unique light levels for all values
+    special: u16,
+    sector_tag: u16,
+}
+
+#[derive(Debug)]
 struct SideDef {
     x: i16,
     y: i16,
@@ -422,6 +433,7 @@ struct Thing {
 struct MapData {
     name: String,
     linedefs: Vec<LineDef>,
+    sectors: Vec<Sector>,
     things: Vec<Thing>,
     vertexes: Vec<Vertex>,
 }
@@ -444,6 +456,28 @@ fn decode_linedefs(file: &mut File, entry: &DirectoryEntry) -> Vec<LineDef> {
             sector_tag:    i16::from_le_bytes(buf[8..10].try_into().unwrap()),
             sidedef_right: i16::from_le_bytes(buf[10..12].try_into().unwrap()),
             sidedef_left:  i16::from_le_bytes(buf[12..14].try_into().unwrap()),
+        }
+    }).collect();
+}
+
+fn decode_sectors(file: &mut File, entry: &DirectoryEntry) -> Vec<Sector> {
+    const SECTOR_SIZE: usize = 5 * std::mem::size_of::<i16>() + 2 * std::mem::size_of::<[u8; 8]>();
+    assert!(entry.size % SECTOR_SIZE as i32 == 0);
+
+    let _ = file.seek(std::io::SeekFrom::Start(entry.offset as u64));
+
+    let mut buf = [0; SECTOR_SIZE];
+    return (0..(entry.size / SECTOR_SIZE as i32)).map(|_| {
+        let _ = file.read_exact(&mut buf);
+
+        Sector {
+            floor_height:    i16::from_le_bytes(buf[0..2].try_into().unwrap()),
+            ceiling_height:  i16::from_le_bytes(buf[2..4].try_into().unwrap()),
+            floor_texture:   buf[4..12].try_into().unwrap(),
+            ceiling_texture: buf[12..20].try_into().unwrap(),
+            light_level:     i16::from_le_bytes(buf[20..22].try_into().unwrap()),
+            special:         u16::from_le_bytes(buf[22..24].try_into().unwrap()),
+            sector_tag:             u16::from_le_bytes(buf[24..26].try_into().unwrap()),
         }
     }).collect();
 }
@@ -566,10 +600,15 @@ fn decode_maps(file: &mut File, directory: &Vec<DirectoryEntry>) -> Vec<MapData>
             .get(&String::from("SIDEDEFS"))
             .map(|d| { decode_sidedefs(file, d) })
             .unwrap_or(vec!());
+        let sectors = lumps
+            .get(&String::from("SECTORS"))
+            .map(|d| { decode_sectors(file, d) })
+            .unwrap_or(vec!());
 
         MapData {
             name: map_name.to_string(),
             linedefs,
+            sectors,
             things,
             vertexes,
         }
