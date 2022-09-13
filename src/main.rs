@@ -82,6 +82,52 @@ fn extract_map(wad: &Wad, map_name: &str) {
     let height = max_y - min_y;
     let width = max_x - min_x;
 
+    // Get the sectors
+    struct RenderableSector {
+        linedefs: Vec<LineDef>,
+        lines: Vec<(Vertex, Vertex)>,
+        sector: Sector,
+    }
+    let sectors: Vec<RenderableSector> = map.sectors.iter().enumerate().map(|(sector_index, sector)| {
+        let sector_lines: Vec<LineDef> = map
+            .linedefs
+            .iter()
+            .enumerate()
+            .filter(|(line_index, linedef)| {
+                if linedef.sidedef_right >= 0 {
+                    let sidedef_right = map.sidedefs[linedef.sidedef_right as usize].clone();
+                    if (sidedef_right.sector as usize) == sector_index {
+                        return true
+                    }
+                }
+                if linedef.sidedef_left >= 0 {
+                    let sidedef_left = map.sidedefs[linedef.sidedef_left as usize].clone();
+                    if (sidedef_left.sector as usize) == sector_index {
+                        return true
+                    }
+                }
+                false
+            })
+            .map(|(line_index, linedef)| linedef.clone())
+            .collect();
+        let vertex_lines: Vec<(Vertex, Vertex)> = sector_lines
+            .iter()
+            .map(|linedef| {
+                let v1 = map.vertexes[linedef.vertex_begin as usize];
+                let v2 = map.vertexes[linedef.vertex_end as usize];
+
+                (v1, v2)
+            })
+            .collect();
+        println!("Renderable sector {:?} has lines {:?}", &sector, &vertex_lines);
+        RenderableSector {
+            linedefs: sector_lines,
+            lines: vertex_lines,
+            sector: sector.clone(),
+        }
+    }).collect();
+
+    // Write it out
     let mut doc = Document::new()
         .set("viewBox", format!("0 0 {} {}", width, height));
 
@@ -385,7 +431,7 @@ fn buf_to_string(input_buf: Vec<u8>) -> String {
         _ => panic!("Failed to parse string from input {:?}", &input_buf)
     }
 }
-
+#[derive(Clone, Debug)]
 struct LineDef {
     vertex_begin: i16,
     vertex_end: i16,
@@ -396,7 +442,7 @@ struct LineDef {
     sidedef_left: i16,
 }
 
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 struct Sector {
     floor_height: i16,
     ceiling_height: i16,
@@ -407,7 +453,7 @@ struct Sector {
     sector_tag: u16,
 }
 
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 struct SideDef {
     x: i16,
     y: i16,
@@ -417,7 +463,7 @@ struct SideDef {
     sector: u16,
 }
 
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, Debug)]
 struct Vertex {
     x: i16,
     y: i16,
@@ -434,6 +480,7 @@ struct MapData {
     name: String,
     linedefs: Vec<LineDef>,
     sectors: Vec<Sector>,
+    sidedefs: Vec<SideDef>,
     things: Vec<Thing>,
     vertexes: Vec<Vertex>,
 }
@@ -600,6 +647,7 @@ fn decode_maps(file: &mut File, directory: &Vec<DirectoryEntry>) -> Vec<MapData>
             name: map_name.to_string(),
             linedefs,
             sectors,
+            sidedefs,
             things,
             vertexes,
         }
