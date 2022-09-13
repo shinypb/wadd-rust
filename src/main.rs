@@ -439,7 +439,7 @@ struct MapData {
 }
 
 fn decode_linedefs(file: &mut File, entry: &DirectoryEntry) -> Vec<LineDef> {
-    const LINEDEF_SIZE: usize = 7 * std::mem::size_of::<i16>();
+    const LINEDEF_SIZE: usize = std::mem::size_of::<LineDef>();
     assert!(entry.size % LINEDEF_SIZE as i32 == 0);
 
     let _ = file.seek(std::io::SeekFrom::Start(entry.offset as u64));
@@ -461,7 +461,7 @@ fn decode_linedefs(file: &mut File, entry: &DirectoryEntry) -> Vec<LineDef> {
 }
 
 fn decode_sectors(file: &mut File, entry: &DirectoryEntry) -> Vec<Sector> {
-    const SECTOR_SIZE: usize = 5 * std::mem::size_of::<i16>() + 2 * std::mem::size_of::<[u8; 8]>();
+    const SECTOR_SIZE: usize = std::mem::size_of::<Sector>();
     assert!(entry.size % SECTOR_SIZE as i32 == 0);
 
     let _ = file.seek(std::io::SeekFrom::Start(entry.offset as u64));
@@ -483,8 +483,7 @@ fn decode_sectors(file: &mut File, entry: &DirectoryEntry) -> Vec<Sector> {
 }
 
 fn decode_sidedefs(file: &mut File, entry: &DirectoryEntry) -> Vec<SideDef> {
-    const SIDEDEF_SIZE: usize = 30; // = (2 x i16) + (3 x [char; 8]) + u16
-
+    const SIDEDEF_SIZE: usize = std::mem::size_of::<SideDef>();
     assert!(entry.size % SIDEDEF_SIZE as i32 == 0);
 
     let _ = file.seek(std::io::SeekFrom::Start(entry.offset as u64));
@@ -512,7 +511,7 @@ fn decode_sidedefs(file: &mut File, entry: &DirectoryEntry) -> Vec<SideDef> {
 }
 
 fn decode_things(file: &mut File, entry: &DirectoryEntry) -> Vec<Thing> {
-    const THING_SIZE: usize = 5 * std::mem::size_of::<i16>();
+    const THING_SIZE: usize = std::mem::size_of::<Thing>();
     assert!(entry.size % THING_SIZE as i32 == 0);
 
     let _ = file.seek(std::io::SeekFrom::Start(entry.offset as u64));
@@ -531,7 +530,7 @@ fn decode_things(file: &mut File, entry: &DirectoryEntry) -> Vec<Thing> {
 }
 
 fn decode_vertexes(file: &mut File, entry: &DirectoryEntry) -> Vec<Vertex> {
-    const VERTEX_SIZE: usize = 2 * std::mem::size_of::<i16>();
+    const VERTEX_SIZE: usize = std::mem::size_of::<Vertex>();
     assert!(entry.size % VERTEX_SIZE as i32 == 0);
 
     let _ = file.seek(std::io::SeekFrom::Start(entry.offset as u64));
