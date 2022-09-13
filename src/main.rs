@@ -546,6 +546,13 @@ fn decode_vertexes(file: &mut File, entry: &DirectoryEntry) -> Vec<Vertex> {
     }).collect();
 }
 
+fn decode_lumps<T>(file: &mut File, lumps: &HashMap<String, DirectoryEntry>, lump_type: &str, decoder_fn: fn(&mut File, &DirectoryEntry) -> Vec<T>) -> Vec<T> {
+    lumps
+        .get(lump_type)
+        .map(|d| { decoder_fn(file, d) })
+        .unwrap_or(vec!())
+}
+
 fn decode_maps(file: &mut File, directory: &Vec<DirectoryEntry>) -> Vec<MapData> {
     let map_lump_names = vec!(
         String::from("BLOCKMAP"),
@@ -584,26 +591,11 @@ fn decode_maps(file: &mut File, directory: &Vec<DirectoryEntry>) -> Vec<MapData>
 
     // Create MapData instances based on the lumps
     let mut maps: Vec<MapData> = map_lumps.iter().map(|(map_name, lumps)| {
-        let linedefs = lumps
-            .get(&String::from("LINEDEFS"))
-            .map(|d| { decode_linedefs(file, d) })
-            .unwrap_or(vec!());
-        let things = lumps
-            .get(&String::from("THINGS"))
-            .map(|d| { decode_things(file, d) })
-            .unwrap_or(vec!());
-        let vertexes = lumps
-            .get(&String::from("VERTEXES"))
-            .map(|d| { decode_vertexes(file, d) })
-            .unwrap_or(vec!());
-        let sidedefs = lumps
-            .get(&String::from("SIDEDEFS"))
-            .map(|d| { decode_sidedefs(file, d) })
-            .unwrap_or(vec!());
-        let sectors = lumps
-            .get(&String::from("SECTORS"))
-            .map(|d| { decode_sectors(file, d) })
-            .unwrap_or(vec!());
+        let linedefs = decode_lumps(file, lumps, &String::from("LINEDEFS"), decode_linedefs);
+        let things = decode_lumps(file, lumps, &String::from("THINGS"), decode_things);
+        let vertexes = decode_lumps(file, lumps, &String::from("VERTEXES"), decode_vertexes);
+        let sidedefs = decode_lumps(file, lumps, &String::from("SIDEDEFS"), decode_sidedefs);
+        let sectors = decode_lumps(file, lumps, &String::from("SECTORS"), decode_sectors);
 
         MapData {
             name: map_name.to_string(),
