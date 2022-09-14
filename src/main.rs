@@ -8,7 +8,7 @@ use std::io::{Read, Seek, Write};
 use std::process::exit;
 
 use svg::Document;
-use svg::node::element::Path;
+use svg::node::element::{Path, Line};
 use svg::node::element::path::Data;
 
 fn main() {
@@ -87,7 +87,7 @@ fn extract_map(wad: &Wad, map_name: &str) {
     #[derive(Debug)]
     struct RenderableSector {
         linedefs: Vec<LineDef>,
-        lines: Vec<(Vertex, Vertex)>,
+        lines: Vec<(Vertex, Vertex, LineDef)>,
         sector: Sector,
     }
     let sectors: Vec<RenderableSector> = map.sectors.iter().enumerate().map(|(sector_index, sector)| {
@@ -112,13 +112,13 @@ fn extract_map(wad: &Wad, map_name: &str) {
             })
             .map(|(line_index, linedef)| linedef.clone())
             .collect();
-        let vertex_lines: Vec<(Vertex, Vertex)> = sector_lines
+        let vertex_lines: Vec<(Vertex, Vertex, LineDef)> = sector_lines
             .iter()
             .map(|linedef| {
                 let v1 = map.vertexes[linedef.vertex_begin as usize];
                 let v2 = map.vertexes[linedef.vertex_end as usize];
 
-                (v1, v2)
+                (v1, v2, linedef.clone())
             })
             .collect();
         RenderableSector {
@@ -134,10 +134,10 @@ fn extract_map(wad: &Wad, map_name: &str) {
         .set("viewBox", format!("0 0 {} {}", width, height));
 
     let mut sector_id = -1;
-    for sector in sectors {
+    for sector in sectors.iter() {
         sector_id += 1;
         println!("\nSector {} has {} lines:", sector_id, sector.lines.len());
-        for (from_v, to_v) in sector.lines.clone() {
+        for (from_v, to_v, _) in sector.lines.clone() {
             println!("({}, {}) -> ({}, {})",
                 from_v.x + offset_x, from_v.y + offset_y,
                 to_v.x + offset_x, to_v.y + offset_y
@@ -161,18 +161,19 @@ fn extract_map(wad: &Wad, map_name: &str) {
                 println!("WARNING: Sector {} only has {} lines left", sector_id, pending_lines.len());
             }
 
-            let (initial_v, mut to_v) = pending_lines.remove(0);
+            let (initial_v, mut to_v, _) = pending_lines.remove(0);
 
             data = data
                 .move_to((initial_v.x + offset_x, initial_v.y + offset_y))
                 .line_to((to_v.x + offset_x, to_v.y + offset_y));
 
-            while let Some(next_line_idx) = pending_lines.iter().position(|(other_from_v, other_to_v)| {
+            while let Some(next_line_idx) = pending_lines.iter().position(|(other_from_v, other_to_v, _)| {
                 // Look for any other lines that share our `to_v` vertex, regardless of direction
                 other_from_v == &to_v
                 || other_to_v == &to_v
             }) {
-                let (next_from_v, next_to_v) = pending_lines.remove(next_line_idx);
+                let prev_v = to_v;
+                let (next_from_v, next_to_v, _) = pending_lines.remove(next_line_idx);
                 if next_to_v == to_v {
                     // This line points in the opposite direction that we want, so swap from_v <-> to_v
                     to_v = next_from_v
@@ -193,13 +194,40 @@ fn extract_map(wad: &Wad, map_name: &str) {
         let path = Path::new()
             .set("id", format!("sector{}", sector_id))
             .set("fill", fill_color)
-            .set("stroke", "red")
-            .set("stroke-width", 2)
+            .set("stroke", "none")
             .set("d", data);
 
         doc = doc.add(path);
     }
 
+    // Draw sector lines
+    for sector in sectors.iter() {
+        for (from_v, to_v, linedef) in sector.lines.iter() {
+            let mut line = Line::new()
+                .set("x1", from_v.x + offset_x)
+                .set("y1", from_v.y + offset_y)
+                .set("x2", to_v.x + offset_x)
+                .set("y2", to_v.y + offset_y);
+            if linedef.sidedef_left < 0 || linedef.sidedef_right < 0 {
+                // one-sided line
+                line = line.set("stroke", "red")
+                    .set("stroke-width", "2");
+            } else {
+                // two-sided line
+                line = line.set("stroke", "rgba(255, 0, 0, 0.25)")
+                    .set("stroke-width", "1");
+            }
+            doc = doc.add(line);
+        }
+    }
+    for line in sectors[0].lines.clone() {
+        println!("{:?}", line);
+    }
+
+    // Save as SVG
+    svg::save(format!("{}.svg", &map_name), &doc).unwrap();
+
+    // Save as HTML
     let html = format!(r#"<!DOCTYPE html>
 <html lang="en-US">
 <head>
@@ -212,11 +240,6 @@ fn extract_map(wad: &Wad, map_name: &str) {
             background-image: linear-gradient(45deg, #ccc 25%, transparent 25%), linear-gradient(-45deg, #ccc 25%, transparent 25%), linear-gradient(45deg, transparent 75%, #ccc 75%), linear-gradient(-45deg, transparent 75%, #ccc 75%);
             background-size: 20px 20px;
             background-position: 0 0, 0 10px, 10px -10px, -10px 0px;
-        }}
-
-        line {{
-            stroke: red;
-            stroke-width: 2;
         }}
     </style>
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
