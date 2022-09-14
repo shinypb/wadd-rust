@@ -135,11 +135,13 @@ fn extract_map(wad: &Wad, map_name: &str) {
     let mut i = -1;
     for sector in sectors {
         i += 1;
+        println!("Sector {}", i);
+        println!("Lines in sector: {:?}", &sector.lines);
         if i != 1 {
             continue;
         }
 
-                
+        let mut data = Data::new();
         let mut pending_lines = sector.lines.clone();
         while !pending_lines.is_empty() {
             // Sectors consist of a series of lines that may or may not all connect with each other:
@@ -151,29 +153,29 @@ fn extract_map(wad: &Wad, map_name: &str) {
             // path.
             // We need at least 3 lines total to draw a triangle, the simplest possible shape:
             println!("lines left? {}", pending_lines.len());
-            assert!(pending_lines.len() >= 3);
+            assert!(pending_lines.len() >= 2);
 
-            let (mut from_v, mut to_v) = pending_lines.pop().unwrap();
-            let mut data = Data::new()
-                .move_to((from_v.x + offset_x, from_v.y + offset_y))
-                .line_to((to_v.x + offset_x, to_v.y + offset_y));
+            let (start_v, mut next_v) = pending_lines.pop().unwrap();
+            data = data
+                .move_to((start_v.x + offset_x, start_v.y + offset_y))
+                .line_to((next_v.x + offset_x, next_v.y + offset_y));
 
-            while let Some(next_line_idx) = pending_lines.iter().position(|(other_from_v, other_to_v)| other_from_v == &to_v) {
+            while let Some(next_line_idx) = pending_lines.iter().position(|(other_from_v, other_to_v)| other_from_v == &next_v) {
                 println!("Inner loop! Now lines left: {}", pending_lines.len());
-                (from_v, to_v) = pending_lines.remove(next_line_idx);
-                data = data.line_to((to_v.x + offset_x, to_v.y + offset_y));
+                (_, next_v) = pending_lines.remove(next_line_idx);
+                data = data.line_to((next_v.x + offset_x, next_v.y + offset_y));
             }
             data = data.close();
-
-            let path = Path::new()
-                .set("fill", "black")
-                .set("fill-rule", "evenodd")
-                .set("stroke", "red")
-                .set("stroke-width", 2)
-                .set("d", data);
-    
-            doc = doc.add(path);
         }
+        let path = Path::new()
+            .set("id", format!("sector{}", i))
+            .set("fill", "gray")
+            .set("fill-rule", "evenodd")
+            .set("stroke", "red")
+            .set("stroke-width", 2)
+            .set("d", data);
+
+        doc = doc.add(path);
     }
 
     let html = format!(r#"<!DOCTYPE html>
