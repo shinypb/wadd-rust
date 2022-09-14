@@ -8,7 +8,8 @@ use std::io::{Read, Seek, Write};
 use std::process::exit;
 
 use svg::Document;
-use svg::node::element::Line;
+use svg::node::element::Path;
+use svg::node::element::path::Data;
 
 fn main() {
     let args: Vec<String> = env::args().collect();
@@ -83,6 +84,7 @@ fn extract_map(wad: &Wad, map_name: &str) {
     let width = max_x - min_x;
 
     // Get the sectors
+    #[derive(Debug)]
     struct RenderableSector {
         linedefs: Vec<LineDef>,
         lines: Vec<(Vertex, Vertex)>,
@@ -119,7 +121,6 @@ fn extract_map(wad: &Wad, map_name: &str) {
                 (v1, v2)
             })
             .collect();
-        println!("Renderable sector {:?} has lines {:?}", &sector, &vertex_lines);
         RenderableSector {
             linedefs: sector_lines,
             lines: vertex_lines,
@@ -131,13 +132,31 @@ fn extract_map(wad: &Wad, map_name: &str) {
     let mut doc = Document::new()
         .set("viewBox", format!("0 0 {} {}", width, height));
 
-    for (from, to) in lines {
-        let line = Line::new()
-            .set("x1", from.x + offset_x)
-            .set("y1", from.y + offset_y)
-            .set("x2", to.x + offset_x)
-            .set("y2", to.y + offset_y);
-        doc = doc.add(line);
+    for sector in sectors {
+        let first_point = sector.lines[0].0;
+        
+        let mut data = Data::new()
+            .move_to((first_point.x + offset_x, first_point.y + offset_y));
+
+        let line = sector.lines[0];
+        for (from, to) in sector.lines {
+            data = data.move_to((from.x + offset_x, from.y + offset_y));
+            data = data.line_to((to.x + offset_x, to.y + offset_y));
+        }
+        data = data.close();
+
+        let path = Path::new()
+            .set("fill", "none")
+            .set("stroke", "red")
+            .set("stroke-width", 2)
+            .set("d", data);
+
+        // let line = Line::new()
+        //     .set("x1", from.x + offset_x)
+        //     .set("y1", from.y + offset_y)
+        //     .set("x2", to.x + offset_x)
+        //     .set("y2", to.y + offset_y);
+        doc = doc.add(path);
     }
 
     let html = format!(r#"<!DOCTYPE html>
@@ -463,7 +482,8 @@ struct SideDef {
     sector: u16,
 }
 
-#[derive(Clone, Copy, Debug)]
+
+#[derive(Clone, Copy, Debug, PartialEq)]
 struct Vertex {
     x: i16,
     y: i16,
