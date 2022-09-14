@@ -8,7 +8,7 @@ use std::io::{Read, Seek, Write};
 use std::process::exit;
 
 use svg::Document;
-use svg::node::element::{Path, Circle};
+use svg::node::element::Path;
 use svg::node::element::path::Data;
 
 fn main() {
@@ -129,16 +129,14 @@ fn extract_map(wad: &Wad, map_name: &str) {
     }).collect();
 
     // Write it out
+    println!("{} has {} sectors", &map_name, sectors.len());
     let mut doc = Document::new()
         .set("viewBox", format!("0 0 {} {}", width, height));
 
-    let mut i = -1;
+    let mut sector_id = -1;
     for sector in sectors {
-        i += 1;
-        if i != 2 {
-            continue;
-        }
-        println!("\nSector {} has {} lines:", i, sector.lines.len());
+        sector_id += 1;
+        println!("\nSector {} has {} lines:", sector_id, sector.lines.len());
         for (from_v, to_v) in sector.lines.clone() {
             println!("({}, {}) -> ({}, {})",
                 from_v.x + offset_x, from_v.y + offset_y,
@@ -148,7 +146,6 @@ fn extract_map(wad: &Wad, map_name: &str) {
 
         let mut data = Data::new();
         let mut pending_lines = sector.lines.clone();
-        let mut circle_id = 0;
         while !pending_lines.is_empty() {
             // Sectors consist of a series of lines that may or may not all connect with each other:
             // a sector might just be a basic polygon, but it could also have a donut-like shape with
@@ -157,36 +154,16 @@ fn extract_map(wad: &Wad, map_name: &str) {
             // create a Path, pop the next line off the list, and walk through all of the remaining
             // lines until we close the path. We continue this until all lines have been added to a
             // path.
-            // We need at least 3 lines total to draw a triangle, the simplest possible shape:
-            println!("{} lines left: {:?}", pending_lines.len(), &pending_lines);
-            // assert!(pending_lines.len() >= 2);
+            // We need at least 2 lines total to draw a triangle, the simplest possible shape:
+            // a line from "A" to "B" and a line from "B" to "C". The line back from "C" to "A" can
+            // be implicit.
+            assert!(pending_lines.len() >= 2);
 
-            let (mut from_v, mut to_v) = pending_lines.remove(0);
-            println!("O ({}, {}) -> ({}, {})",
-                from_v.x + offset_x, from_v.y + offset_y,
-                to_v.x + offset_x, to_v.y + offset_y
-            );
+            let (initial_v, mut to_v) = pending_lines.remove(0);
 
             data = data
-                .move_to((from_v.x + offset_x, from_v.y + offset_y))
+                .move_to((initial_v.x + offset_x, initial_v.y + offset_y))
                 .line_to((to_v.x + offset_x, to_v.y + offset_y));
-            doc = doc.add(
-                Circle::new()
-                    .set("id", circle_id)
-                    .set("cx", from_v.x + offset_x)
-                    .set("cy", from_v.y + offset_y)
-                    .set("r", 10)
-                    .set("fill", "yellow")
-            );
-            doc = doc.add(
-                Circle::new()
-                    .set("id", circle_id)
-                    .set("cx", to_v.x + offset_x)
-                    .set("cy", to_v.y + offset_y)
-                    .set("r", 10)
-                    .set("fill", "green")
-            );
-            circle_id += 1;
 
             if pending_lines.is_empty() {
                 // just loop back to the beginning
@@ -199,45 +176,27 @@ fn extract_map(wad: &Wad, map_name: &str) {
                 // Look for any other lines that share a point with this one, regardless of direction
                 other_from_v == &to_v
                 || other_to_v == &to_v
-                // || other_from_v == &from_v
-                // || other_to_v == &to_v
             }) {
                 let (next_from_v, next_to_v) = pending_lines.remove(next_line_idx);
                 if next_to_v == to_v {
-                    // Swap from/to
-                    println!("SWAP");
-                    (from_v, to_v) = (next_to_v, next_from_v)
+                    // This line points in the opposite direction that we want, so swap from/to
+                    (_, to_v) = (next_to_v, next_from_v)
                 } else {
-                    (from_v, to_v) = (next_from_v, next_to_v)
+                    (_, to_v) = (next_from_v, next_to_v)
                 }
-                println!("I ({}, {}) -> ({}, {})",
-                    from_v.x + offset_x, from_v.y + offset_y,
-                    to_v.x + offset_x, to_v.y + offset_y
-                );
 
                 data = data.line_to((to_v.x + offset_x, to_v.y + offset_y));
-                doc = doc.add(
-                    Circle::new()
-                        .set("id", circle_id)
-                        .set("cx", to_v.x + offset_x)
-                        .set("cy", to_v.y + offset_y)
-                        .set("r", 10)
-                        .set("fill", "blue")
-                );
-                circle_id += 1;
             }
-            // assert!(pending_lines.is_empty()); // temp just for sector 1
-            if pending_lines.is_empty() {
-                data = data.close();
-            } else {
-                println!("nothing connected with {:?}", (from_v, to_v));
-            }
+            data = data.close();
         }
+
+        let light_level = sector.sector.light_level.clamp(0, 255);
+        let fill_color = format!("rgb({}, {}, {})", light_level, light_level, light_level);
+        let stroke_color = "red"; // todo set based on whether line is one-sided or two-sided
         let path = Path::new()
-            .set("id", format!("sector{}", i))
-            .set("fill", "gray")
-            .set("fill-rule", "evenodd")
-            .set("stroke", "red")
+            .set("id", format!("sector{}", sector_id))
+            .set("fill", fill_color)
+            .set("stroke", stroke_color)
             .set("stroke-width", 2)
             .set("d", data);
 
@@ -249,6 +208,15 @@ fn extract_map(wad: &Wad, map_name: &str) {
 <head>
     <meta charset="utf-8">
     <style>
+        html {{
+            background: white;
+            color: white;
+            /* https://stackoverflow.com/posts/35362074/revisions */
+            background-image: linear-gradient(45deg, #ccc 25%, transparent 25%), linear-gradient(-45deg, #ccc 25%, transparent 25%), linear-gradient(45deg, transparent 75%, #ccc 75%), linear-gradient(-45deg, transparent 75%, #ccc 75%);
+            background-size: 20px 20px;
+            background-position: 0 0, 0 10px, 10px -10px, -10px 0px;
+        }}
+
         line {{
             stroke: red;
             stroke-width: 2;
