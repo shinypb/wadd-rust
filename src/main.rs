@@ -8,7 +8,7 @@ use std::io::{Read, Seek, Write};
 use std::process::exit;
 
 use svg::Document;
-use svg::node::element::Path;
+use svg::node::element::{Path, Circle};
 use svg::node::element::path::Data;
 
 fn main() {
@@ -135,14 +135,20 @@ fn extract_map(wad: &Wad, map_name: &str) {
     let mut i = -1;
     for sector in sectors {
         i += 1;
-        println!("Sector {}", i);
-        println!("Lines in sector: {:?}", &sector.lines);
-        if i != 1 {
-            continue;
+        if i != 2 {
+            // continue;
+        }
+        println!("\nSector {} has {} lines:", i, sector.lines.len());
+        for (from_v, to_v) in sector.lines.clone() {
+            println!("({}, {}) -> ({}, {})",
+                from_v.x + offset_x, from_v.y + offset_y,
+                to_v.x + offset_x, to_v.y + offset_y
+            );
         }
 
         let mut data = Data::new();
         let mut pending_lines = sector.lines.clone();
+        let mut circle_id = 0;
         while !pending_lines.is_empty() {
             // Sectors consist of a series of lines that may or may not all connect with each other:
             // a sector might just be a basic polygon, but it could also have a donut-like shape with
@@ -152,20 +158,80 @@ fn extract_map(wad: &Wad, map_name: &str) {
             // lines until we close the path. We continue this until all lines have been added to a
             // path.
             // We need at least 3 lines total to draw a triangle, the simplest possible shape:
-            println!("lines left? {}", pending_lines.len());
-            assert!(pending_lines.len() >= 2);
+            println!("{} lines left: {:?}", pending_lines.len(), &pending_lines);
+            // assert!(pending_lines.len() >= 2);
 
-            let (start_v, mut next_v) = pending_lines.pop().unwrap();
+            let (mut from_v, mut to_v) = pending_lines.remove(0);
+            println!("O ({}, {}) -> ({}, {})",
+                from_v.x + offset_x, from_v.y + offset_y,
+                to_v.x + offset_x, to_v.y + offset_y
+            );
+
             data = data
-                .move_to((start_v.x + offset_x, start_v.y + offset_y))
-                .line_to((next_v.x + offset_x, next_v.y + offset_y));
+                .move_to((from_v.x + offset_x, from_v.y + offset_y))
+                .line_to((to_v.x + offset_x, to_v.y + offset_y));
+            doc = doc.add(
+                Circle::new()
+                    .set("id", circle_id)
+                    .set("cx", from_v.x + offset_x)
+                    .set("cy", from_v.y + offset_y)
+                    .set("r", 10)
+                    .set("fill", "yellow")
+            );
+            doc = doc.add(
+                Circle::new()
+                    .set("id", circle_id)
+                    .set("cx", to_v.x + offset_x)
+                    .set("cy", to_v.y + offset_y)
+                    .set("r", 10)
+                    .set("fill", "green")
+            );
+            circle_id += 1;
 
-            while let Some(next_line_idx) = pending_lines.iter().position(|(other_from_v, other_to_v)| other_from_v == &next_v) {
-                println!("Inner loop! Now lines left: {}", pending_lines.len());
-                (_, next_v) = pending_lines.remove(next_line_idx);
-                data = data.line_to((next_v.x + offset_x, next_v.y + offset_y));
+            if pending_lines.is_empty() {
+                // just loop back to the beginning
+                println!("just loop back to the beginning");
+                data = data.close();
+                break
             }
-            data = data.close();
+
+            while let Some(next_line_idx) = pending_lines.iter().position(|(other_from_v, other_to_v)| {
+                // Look for any other lines that share a point with this one, regardless of direction
+                other_from_v == &to_v
+                || other_to_v == &to_v
+                // || other_from_v == &from_v
+                // || other_to_v == &to_v
+            }) {
+                let (next_from_v, next_to_v) = pending_lines.remove(next_line_idx);
+                if next_to_v == to_v {
+                    // Swap from/to
+                    println!("SWAP");
+                    (from_v, to_v) = (next_to_v, next_from_v)
+                } else {
+                    (from_v, to_v) = (next_from_v, next_to_v)
+                }
+                println!("I ({}, {}) -> ({}, {})",
+                    from_v.x + offset_x, from_v.y + offset_y,
+                    to_v.x + offset_x, to_v.y + offset_y
+                );
+
+                data = data.line_to((to_v.x + offset_x, to_v.y + offset_y));
+                doc = doc.add(
+                    Circle::new()
+                        .set("id", circle_id)
+                        .set("cx", to_v.x + offset_x)
+                        .set("cy", to_v.y + offset_y)
+                        .set("r", 10)
+                        .set("fill", "blue")
+                );
+                circle_id += 1;
+            }
+            // assert!(pending_lines.is_empty()); // temp just for sector 1
+            if pending_lines.is_empty() {
+                data = data.close();
+            } else {
+                println!("nothing connected with {:?}", (from_v, to_v));
+            }
         }
         let path = Path::new()
             .set("id", format!("sector{}", i))
