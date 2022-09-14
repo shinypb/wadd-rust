@@ -118,6 +118,16 @@ fn extract_map(wad: &Wad, map_name: &str) {
                 let v1 = map.vertexes[linedef.vertex_begin as usize];
                 let v2 = map.vertexes[linedef.vertex_end as usize];
 
+                // Vertexes are stored upside down from what we'd expect, so flip their y coordinate
+                let v1 = Vertex {
+                    y: max_y - (v1.y - min_y),
+                    ..v1
+                };
+                let v2 = Vertex {
+                    y: max_y - (v2.y - min_y),
+                    ..v2
+                };
+
                 (v1, v2, linedef.clone())
             })
             .collect();
