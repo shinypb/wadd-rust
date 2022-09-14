@@ -136,7 +136,7 @@ fn extract_map(wad: &Wad, map_name: &str) {
     for sector in sectors {
         i += 1;
         if i != 2 {
-            // continue;
+            continue;
         }
         println!("\nSector {} has {} lines:", i, sector.lines.len());
         for (from_v, to_v) in sector.lines.clone() {
