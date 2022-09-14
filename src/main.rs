@@ -32,8 +32,10 @@ fn handle_command(filename: &String, command: &str, params: &[String]) {
             match params.first() {
                 Some(map_name) => extract_map(&wad, &map_name),
                 None => {
-                    println!("Error: must provide a map name.\n");
-                    print_usage_and_exit();
+                    println!("Dumping all maps...");
+                    for map in &wad.maps {
+                        extract_map(&wad, &map.name)
+                    }
                 }
             }
         }
@@ -302,6 +304,7 @@ fn print_usage_and_exit() {
     println!("  prints a list of the maps in the WAD.");
     println!("- svg [map name]");
     println!("  extracts the given map to an SVG file in the current directory with the filename [map name].svg");
+    println!("  (if no map name is specified, every map in the WAD will be extracted automatically)");
 
     exit(255);
 }
