@@ -132,31 +132,48 @@ fn extract_map(wad: &Wad, map_name: &str) {
     let mut doc = Document::new()
         .set("viewBox", format!("0 0 {} {}", width, height));
 
+    let mut i = -1;
     for sector in sectors {
-        let first_point = sector.lines[0].0;
-        
-        let mut data = Data::new()
-            .move_to((first_point.x + offset_x, first_point.y + offset_y));
-
-        let line = sector.lines[0];
-        for (from, to) in sector.lines {
-            data = data.move_to((from.x + offset_x, from.y + offset_y));
-            data = data.line_to((to.x + offset_x, to.y + offset_y));
+        i += 1;
+        if i != 1 {
+            continue;
         }
-        data = data.close();
 
-        let path = Path::new()
-            .set("fill", "none")
-            .set("stroke", "red")
-            .set("stroke-width", 2)
-            .set("d", data);
+                
+        let mut pending_lines = sector.lines.clone();
+        while !pending_lines.is_empty() {
+            // Sectors consist of a series of lines that may or may not all connect with each other:
+            // a sector might just be a basic polygon, but it could also have a donut-like shape with
+            // an empty spot or another sector contained within it. Because of this, we can't just
+            // just iterate over the lines in the sector and add them to a single Path. Instead, we
+            // create a Path, pop the next line off the list, and walk through all of the remaining
+            // lines until we close the path. We continue this until all lines have been added to a
+            // path.
+            // We need at least 3 lines total to draw a triangle, the simplest possible shape:
+            println!("lines left? {}", pending_lines.len());
+            assert!(pending_lines.len() >= 3);
 
-        // let line = Line::new()
-        //     .set("x1", from.x + offset_x)
-        //     .set("y1", from.y + offset_y)
-        //     .set("x2", to.x + offset_x)
-        //     .set("y2", to.y + offset_y);
-        doc = doc.add(path);
+            let (mut from_v, mut to_v) = pending_lines.pop().unwrap();
+            let mut data = Data::new()
+                .move_to((from_v.x + offset_x, from_v.y + offset_y))
+                .line_to((to_v.x + offset_x, to_v.y + offset_y));
+
+            while let Some(next_line_idx) = pending_lines.iter().position(|(other_from_v, other_to_v)| other_from_v == &to_v) {
+                println!("Inner loop! Now lines left: {}", pending_lines.len());
+                (from_v, to_v) = pending_lines.remove(next_line_idx);
+                data = data.line_to((to_v.x + offset_x, to_v.y + offset_y));
+            }
+            data = data.close();
+
+            let path = Path::new()
+                .set("fill", "black")
+                .set("fill-rule", "evenodd")
+                .set("stroke", "red")
+                .set("stroke-width", 2)
+                .set("d", data);
+    
+            doc = doc.add(path);
+        }
     }
 
     let html = format!(r#"<!DOCTYPE html>
