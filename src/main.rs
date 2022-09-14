@@ -157,7 +157,9 @@ fn extract_map(wad: &Wad, map_name: &str) {
             // We need at least 2 lines total to draw a triangle, the simplest possible shape:
             // a line from "A" to "B" and a line from "B" to "C". The line back from "C" to "A" can
             // be implicit.
-            assert!(pending_lines.len() >= 2);
+            if pending_lines.len() < 2 {
+                println!("WARNING: Sector {} only has {} lines left", sector_id, pending_lines.len());
+            }
 
             let (initial_v, mut to_v) = pending_lines.remove(0);
 
@@ -165,24 +167,17 @@ fn extract_map(wad: &Wad, map_name: &str) {
                 .move_to((initial_v.x + offset_x, initial_v.y + offset_y))
                 .line_to((to_v.x + offset_x, to_v.y + offset_y));
 
-            if pending_lines.is_empty() {
-                // just loop back to the beginning
-                println!("just loop back to the beginning");
-                data = data.close();
-                break
-            }
-
             while let Some(next_line_idx) = pending_lines.iter().position(|(other_from_v, other_to_v)| {
-                // Look for any other lines that share a point with this one, regardless of direction
+                // Look for any other lines that share our `to_v` vertex, regardless of direction
                 other_from_v == &to_v
                 || other_to_v == &to_v
             }) {
                 let (next_from_v, next_to_v) = pending_lines.remove(next_line_idx);
                 if next_to_v == to_v {
-                    // This line points in the opposite direction that we want, so swap from/to
-                    (_, to_v) = (next_to_v, next_from_v)
+                    // This line points in the opposite direction that we want, so swap from_v <-> to_v
+                    to_v = next_from_v
                 } else {
-                    (_, to_v) = (next_from_v, next_to_v)
+                    to_v = next_to_v
                 }
 
                 data = data.line_to((to_v.x + offset_x, to_v.y + offset_y));
@@ -192,11 +187,13 @@ fn extract_map(wad: &Wad, map_name: &str) {
 
         let light_level = sector.sector.light_level.clamp(0, 255);
         let fill_color = format!("rgb({}, {}, {})", light_level, light_level, light_level);
-        let stroke_color = "red"; // todo set based on whether line is one-sided or two-sided
+        // TODO: eventually it'd be nice to have each individual line be colored differently depending
+        // on whether it was one-sided or two-sided. Doing this would require drawing the path without
+        // a stroke, and drawing all of the lines individually.
         let path = Path::new()
             .set("id", format!("sector{}", sector_id))
             .set("fill", fill_color)
-            .set("stroke", stroke_color)
+            .set("stroke", "red")
             .set("stroke-width", 2)
             .set("d", data);
 
