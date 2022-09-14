@@ -139,7 +139,7 @@ fn extract_map(wad: &Wad, map_name: &str) {
     }).collect();
 
     // Write it out
-    println!("{} has {} sectors", &map_name, sectors.len());
+    println!("{} has {} sectors and is {}x{}", &map_name, sectors.len(), width, height);
     let mut doc = Document::new()
         .set("viewBox", format!("0 0 {} {}", width, height));
 
