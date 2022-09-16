@@ -86,10 +86,11 @@ fn extract_map(wad: &Wad, map_name: &str) {
     let width = max_x - min_x;
 
     // Get the sectors
+    type SectorLine = (Vertex, Vertex, LineDef);
     #[derive(Debug)]
     struct RenderableSector {
         linedefs: Vec<LineDef>,
-        lines: Vec<(Vertex, Vertex, LineDef)>,
+        lines: Vec<SectorLine>,
         sector: Sector,
     }
     let sectors: Vec<RenderableSector> = map.sectors.iter().enumerate().map(|(sector_index, sector)| {
@@ -114,7 +115,7 @@ fn extract_map(wad: &Wad, map_name: &str) {
             })
             .map(|(line_index, linedef)| linedef.clone())
             .collect();
-        let vertex_lines: Vec<(Vertex, Vertex, LineDef)> = sector_lines
+        let vertex_lines: Vec<SectorLine> = sector_lines
             .iter()
             .map(|linedef| {
                 let v1 = map.vertexes[linedef.vertex_begin as usize];
