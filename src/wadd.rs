@@ -227,10 +227,7 @@ pub struct Wad {
 
 impl Wad {
   pub fn open(filename: &str) -> Wad {
-      let mut file = match File::open(filename) {
-          Ok(file) => file,
-          Err(error) => panic!("Failed to open {}: {}", filename, error),
-      };
+      let mut file = File::open(filename).expect("Failed to open file");
 
       let (wad_type, directory_offset, num_directory_entries) = decode_header(&mut file);
       let directory = decode_directory(&mut file, directory_offset, num_directory_entries);
@@ -262,7 +259,7 @@ fn decode_header(file: &mut File) -> (WadType, i32, i32) {
   let wad_type = match String::from_utf8(v) {
       Ok(str) if str.eq("IWAD") => WadType::IWAD,
       Ok(str) if str.eq("PWAD") => WadType::PWAD,
-      _ => panic!("Invalid WAD; expected signature {:?} to be 'IWAD' ({:?}) or 'PWAD' ({:?})",
+      _ => panic!("Invalid WAD; expected signature {:?} to be {:?} ('IWAD') or ({:?}) ('PWAD')",
           header_buf[0..4].to_vec(),
           String::from("IWAD").as_bytes(),
           String::from("PWAD").as_bytes()
@@ -424,26 +421,26 @@ fn decode_lumps<T>(file: &mut File, lumps: &HashMap<String, DirectoryEntry>, lum
 }
 
 fn decode_maps(file: &mut File, directory: &Vec<DirectoryEntry>) -> Vec<MapData> {
-  let map_lump_names = vec!(
-      String::from("BLOCKMAP"),
-      String::from("LINEDEFS"),
-      String::from("NODES"),
-      String::from("REJECT"),
-      String::from("SCRIPTS"),
-      String::from("SECTORS"),
-      String::from("SEGS"),
-      String::from("SIDEDEFS"),
-      String::from("SSECTORS"),
-      String::from("THINGS"),
-      String::from("VERTEXES"),
-  );
+  let map_lump_names: Vec<String> = vec!(
+    "BLOCKMAP",
+    "LINEDEFS",
+    "NODES",
+    "REJECT",
+    "SCRIPTS",
+    "SECTORS",
+    "SEGS",
+    "SIDEDEFS",
+    "SSECTORS",
+    "THINGS",
+    "VERTEXES",
+  ).iter().map(|str| str.to_string()).collect();
 
   // Collect all of the lumps on a per-map basis
   let mut map_lumps: HashMap<String, HashMap<String, DirectoryEntry>> = HashMap::new();
   for mut i in 0..directory.len() {
       let d = directory.get(i).unwrap();
       if d.size == 0 && d.offset > 0 { // this lump is the start of a map
-          let map_name = String::from(&d.name);
+          let map_name = d.name.clone();
           let mut lumps = HashMap::new();
 
           loop {
@@ -461,11 +458,11 @@ fn decode_maps(file: &mut File, directory: &Vec<DirectoryEntry>) -> Vec<MapData>
 
   // Create MapData instances based on the lumps
   let mut maps: Vec<MapData> = map_lumps.iter().map(|(map_name, lumps)| {
-      let linedefs = decode_lumps(file, lumps, &String::from("LINEDEFS"), decode_linedefs);
-      let things = decode_lumps(file, lumps, &String::from("THINGS"), decode_things);
-      let vertexes = decode_lumps(file, lumps, &String::from("VERTEXES"), decode_vertexes);
-      let sidedefs = decode_lumps(file, lumps, &String::from("SIDEDEFS"), decode_sidedefs);
-      let sectors = decode_lumps(file, lumps, &String::from("SECTORS"), decode_sectors);
+      let linedefs = decode_lumps(file, lumps, "LINEDEFS", decode_linedefs);
+      let things = decode_lumps(file, lumps, "THINGS", decode_things);
+      let vertexes = decode_lumps(file, lumps, "VERTEXES", decode_vertexes);
+      let sidedefs = decode_lumps(file, lumps, "SIDEDEFS", decode_sidedefs);
+      let sectors = decode_lumps(file, lumps, "SECTORS", decode_sectors);
 
       MapData {
           name: map_name.to_string(),
