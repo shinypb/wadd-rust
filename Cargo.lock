@@ -3,6 +3,12 @@
 version = 3
 
 [[package]]
+name = "fixedstr"
+version = "0.2.8"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "b21ed51d626aedbabede069b12d497d580915e4810fdc2bcefaefda50fbe1c41"
+
+[[package]]
 name = "svg"
 version = "0.10.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -12,5 +18,6 @@ checksum = "e72d8b19ab05827afefcca66bf47040c1e66a0901eb814784c77d4ec118bd309"
 name = "wadd-rust"
 version = "0.1.0"
 dependencies = [
+ "fixedstr",
  "svg",
 ]
