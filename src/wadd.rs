@@ -345,7 +345,7 @@ fn decode_sectors(file: &mut File, entry: &DirectoryEntry) -> Vec<Sector> {
           ceiling_texture: buf[12..20].try_into().unwrap(),
           light_level:     i16::from_le_bytes(buf[20..22].try_into().unwrap()),
           special:         u16::from_le_bytes(buf[22..24].try_into().unwrap()),
-          sector_tag:             u16::from_le_bytes(buf[24..26].try_into().unwrap()),
+          sector_tag:      u16::from_le_bytes(buf[24..26].try_into().unwrap()),
       }
   }).collect();
 }
@@ -459,10 +459,10 @@ fn decode_maps(file: &mut File, directory: &Vec<DirectoryEntry>) -> Vec<MapData>
   // Create MapData instances based on the lumps
   let mut maps: Vec<MapData> = map_lumps.iter().map(|(map_name, lumps)| {
       let linedefs = decode_lumps(file, lumps, "LINEDEFS", decode_linedefs);
-      let things = decode_lumps(file, lumps, "THINGS", decode_things);
+      let things   = decode_lumps(file, lumps, "THINGS", decode_things);
       let vertexes = decode_lumps(file, lumps, "VERTEXES", decode_vertexes);
       let sidedefs = decode_lumps(file, lumps, "SIDEDEFS", decode_sidedefs);
-      let sectors = decode_lumps(file, lumps, "SECTORS", decode_sectors);
+      let sectors  = decode_lumps(file, lumps, "SECTORS", decode_sectors);
 
       MapData {
           name: map_name.to_string(),
