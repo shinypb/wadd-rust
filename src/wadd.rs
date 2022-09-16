@@ -306,10 +306,8 @@ fn buf_to_fstr<const N:usize>(input_buf: &[u8]) -> fstr<N> {
 }
 
 fn buf_to_string(input_buf: &[u8]) -> String {
-  match String::from_utf8(input_buf.to_vec()) {
-      Ok(str) => str.trim_end_matches(char::is_control).to_owned(), // wad strings are fixed length, end-padded with nulls
-      _ => panic!("Failed to parse string from input {:?}", &input_buf)
-  }
+  // Strings in WADs are fixed length, end-padded with null characters as needed.
+  String::from_utf8(input_buf.to_vec()).unwrap().trim_end_matches(char::is_control).to_owned()
 }
 
 fn decode_linedefs(file: &mut File, entry: &DirectoryEntry) -> Vec<LineDef> {
