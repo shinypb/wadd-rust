@@ -172,9 +172,8 @@ fn extract_map(wad: &Wad, map_name: &str) {
             // create a Path, pop the next line off the list, and walk through all of the remaining
             // lines until we close the path. We continue this until all lines have been added to a
             // path.
-            // We need at least 2 lines total to draw a triangle, the simplest possible shape:
-            // a line from "A" to "B" and a line from "B" to "C". The line back from "C" to "A" can
-            // be implicit.
+            // TODO: There is currently something wrong with this logic, leading to orphan lines not
+            // getting added to the path. Sector 0 of E4M9 demonstrates this pretty well.
             if pending_lines.len() < 2 {
                 println!("WARNING: Sector {} only has {} lines left", sector_id, pending_lines.len());
             }
@@ -188,7 +187,7 @@ fn extract_map(wad: &Wad, map_name: &str) {
             while let Some(next_line_idx) = pending_lines.iter().position(|(other_from_v, other_to_v, _)| {
                 // Look for any other lines that share our `to_v` vertex, regardless of direction
                 other_from_v == &to_v
-                || other_to_v == &to_v
+                || other_to_v == &to_v // handle backwards lines, e.g. E1M1's sector 2
             }) {
                 let prev_v = to_v;
                 let (next_from_v, next_to_v, _) = pending_lines.remove(next_line_idx);
