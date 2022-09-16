@@ -146,9 +146,14 @@ fn extract_map(wad: &Wad, map_name: &str) {
     let mut doc = Document::new()
         .set("viewBox", format!("0 0 {} {}", width, height));
 
-    let mut sector_id = -1;
-    for sector in sectors.iter() {
-        sector_id += 1;
+    // Debugging feature: only show a particular subset of sectors; leave empty to include all
+    // sectors (as usual).
+    let debugging_sector_filter: Vec<usize> = vec!();
+
+    for (sector_id, sector) in sectors.iter().enumerate() {
+        if !debugging_sector_filter.is_empty() && !debugging_sector_filter.contains(&sector_id) {
+            continue;
+        }
         println!("\nSector {} has {} lines:", sector_id, sector.lines.len());
         for (from_v, to_v, _) in sector.lines.clone() {
             println!("({}, {}) -> ({}, {})",
@@ -214,7 +219,10 @@ fn extract_map(wad: &Wad, map_name: &str) {
     }
 
     // Draw sector lines
-    for sector in sectors.iter() {
+    for (sector_id, sector) in sectors.iter().enumerate() {
+        if !debugging_sector_filter.is_empty() && !debugging_sector_filter.contains(&sector_id) {
+            continue;
+        }
         for (from_v, to_v, linedef) in sector.lines.iter() {
             let mut line = Line::new()
                 .set("x1", from_v.x + offset_x)
