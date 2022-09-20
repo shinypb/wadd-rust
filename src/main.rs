@@ -300,7 +300,7 @@ fn show_info(wad: &Wad) {
         if d.size > 0 {
             println!("- {: <8}\t{} bytes starting at {}", d.name, d.size, d.offset);
         } else {
-            println!("- {: <8}\tempty lump", d.name);
+            println!("- {: <8}\t(empty lump)", d.name);
         }
     }
 }
