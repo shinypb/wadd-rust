@@ -289,7 +289,7 @@ fn decode_directory(file: &mut File, offset: i32, num_entries: i32) -> Vec<Direc
 
       let lump_offset = i32::from_le_bytes(entry_buf[0..4].try_into().expect("Failed to get bytes from buffer"));
       let lump_size = i32::from_le_bytes(entry_buf[4..8].try_into().expect("Failed to get bytes from buffer"));
-      let lump_name = buf_to_string(&entry_buf[8..16]);
+      let lump_name = buf_to_string(&entry_buf[8..16]).expect(&format!("Lump {} at offset {} has invalid name", &i, &entry_offset));
 
       entries.push(DirectoryEntry {
           name: lump_name,
@@ -301,13 +301,18 @@ fn decode_directory(file: &mut File, offset: i32, num_entries: i32) -> Vec<Direc
   entries
 }
 
-fn buf_to_fstr<const N:usize>(input_buf: &[u8]) -> fstr<N> {
-  fstr::from(buf_to_string(input_buf))
+fn buf_to_fstr<const N:usize>(input_buf: &[u8]) -> Option<fstr<N>> {
+    buf_to_string(input_buf).map(|str| fstr::from(str))
 }
 
-fn buf_to_string(input_buf: &[u8]) -> String {
-  // Strings in WADs are fixed length, end-padded with null characters as needed.
-  String::from_utf8(input_buf.to_vec()).unwrap().trim_end_matches(char::is_control).to_owned()
+fn buf_to_string(input_buf: &[u8]) -> Option<String> {
+    // Strings in WADs are fixed length, end-padded with null characters as needed.
+    let end_pos = input_buf.iter().position(|c| *c == 0).unwrap_or(input_buf.len());
+
+    match String::from_utf8(input_buf[0..end_pos].to_vec()) {
+        Ok(str) => Some(str.trim_end_matches(char::is_control).to_owned()),
+        Err(_) => None
+    }
 }
 
 fn decode_linedefs(file: &mut File, entry: &DirectoryEntry) -> Vec<LineDef> {
@@ -339,14 +344,14 @@ fn decode_sectors(file: &mut File, entry: &DirectoryEntry) -> Vec<Sector> {
   let _ = file.seek(std::io::SeekFrom::Start(entry.offset as u64));
 
   let mut buf = [0; SECTOR_SIZE];
-  return (0..(entry.size / SECTOR_SIZE as i32)).map(|_| {
+  return (0..(entry.size / SECTOR_SIZE as i32)).map(|sector_id| {
       let _ = file.read_exact(&mut buf);
 
       Sector {
           floor_height:    i16::from_le_bytes(buf[0..2].try_into().unwrap()),
           ceiling_height:  i16::from_le_bytes(buf[2..4].try_into().unwrap()),
-          floor_texture:   buf_to_fstr(&buf[4..12]),
-          ceiling_texture: buf_to_fstr(&buf[12..20]),
+          floor_texture:   buf_to_fstr(&buf[4..12]).expect(&format!("Sector {} has invalid floor texture", sector_id)),
+          ceiling_texture: buf_to_fstr(&buf[12..20]).expect(&format!("Sector {} has invalid ceiling texture", sector_id)),
           light_level:     i16::from_le_bytes(buf[20..22].try_into().unwrap()),
           special:         u16::from_le_bytes(buf[22..24].try_into().unwrap()),
           sector_tag:      u16::from_le_bytes(buf[24..26].try_into().unwrap()),
@@ -368,13 +373,13 @@ fn decode_sidedefs(file: &mut File, entry: &DirectoryEntry) -> Vec<SideDef> {
   }
 
   let mut buf = [0; SIDEDEF_SIZE];
-  return (0..(entry.size / SIDEDEF_SIZE as i32)).map(|_| {
+  return (0..(entry.size / SIDEDEF_SIZE as i32)).map(|sidedef_id| {
       let _ = file.read_exact(&mut buf);
 
       const NO_TEXTURE_PLACEHOLDER: &str = "-";
-      let upper_texture = Some(buf_to_fstr(&buf[4..12])).filter(|str| str != NO_TEXTURE_PLACEHOLDER);
-      let lower_texture = Some(buf_to_fstr(&buf[12..20])).filter(|str| str != NO_TEXTURE_PLACEHOLDER);
-      let middle_texture = Some(buf_to_fstr(&buf[20..28])).filter(|str| str != NO_TEXTURE_PLACEHOLDER);
+      let upper_texture = buf_to_fstr(&buf[4..12]).filter(|str| str != NO_TEXTURE_PLACEHOLDER);
+      let lower_texture = buf_to_fstr(&buf[12..20]).filter(|str| str != NO_TEXTURE_PLACEHOLDER);
+      let middle_texture = buf_to_fstr(&buf[20..28]).filter(|str| str != NO_TEXTURE_PLACEHOLDER);
 
       SideDef {
           x: i16::from_le_bytes(buf[0..2].try_into().unwrap()),
