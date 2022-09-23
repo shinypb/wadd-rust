@@ -8,12 +8,12 @@ use std::fs::File;
 use std::io::Write;
 use std::process::exit;
 
-use svg::Document;
-use svg::node::element::{Path, Line};
 use svg::node::element::path::Data;
+use svg::node::element::{Line, Path};
+use svg::Document;
 use wadd::Wad;
 
-use crate::wadd::{Vertex, LineDef, Sector, WadType};
+use crate::wadd::{LineDef, Sector, Vertex, WadType};
 
 fn main() {
     let args: Vec<String> = env::args().collect();
@@ -22,7 +22,7 @@ fn main() {
     match args.as_slice() {
         [_, filename] => handle_command(filename, &String::from("info"), &[]),
         [_, filename, command, rest @ ..] => handle_command(filename, command, rest),
-        _ => print_usage_and_exit()
+        _ => print_usage_and_exit(),
     }
 }
 
@@ -32,17 +32,15 @@ fn handle_command(filename: &String, command: &str, params: &[String]) {
     match command {
         "info" => show_info(&wad),
         "maps" => list_maps(&wad),
-        "svg" => {
-            match params.first() {
-                Some(map_name) => extract_map(&wad, &map_name),
-                None => {
-                    println!("Dumping all maps...");
-                    for map in &wad.maps {
-                        extract_map(&wad, &map.name)
-                    }
+        "svg" => match params.first() {
+            Some(map_name) => extract_map(&wad, &map_name),
+            None => {
+                println!("Dumping all maps...");
+                for map in &wad.maps {
+                    extract_map(&wad, &map.name)
                 }
             }
-        }
+        },
         _ => {
             println!("Sorry, I don't know how to {}.", command);
             std::process::exit(1);
@@ -51,14 +49,22 @@ fn handle_command(filename: &String, command: &str, params: &[String]) {
 }
 
 fn extract_map(wad: &Wad, map_name: &str) {
-    let map = wad.maps.iter().find(|map| map.name == map_name).expect("That map does not exist.");
+    let map = wad
+        .maps
+        .iter()
+        .find(|map| map.name == map_name)
+        .expect("That map does not exist.");
 
-    let lines: Vec<(Vertex, Vertex)> = map.linedefs.iter().map(|linedef| {
-        let v1 = map.vertexes[linedef.vertex_begin as usize];
-        let v2 = map.vertexes[linedef.vertex_end as usize];
-        
-        (v1, v2)
-    }).collect();
+    let lines: Vec<(Vertex, Vertex)> = map
+        .linedefs
+        .iter()
+        .map(|linedef| {
+            let v1 = map.vertexes[linedef.vertex_begin as usize];
+            let v2 = map.vertexes[linedef.vertex_end as usize];
+
+            (v1, v2)
+        })
+        .collect();
 
     assert!(lines.len() > 0);
 
@@ -97,62 +103,72 @@ fn extract_map(wad: &Wad, map_name: &str) {
         lines: Vec<SectorLine>,
         sector: Sector,
     }
-    let sectors: Vec<RenderableSector> = map.sectors.iter().enumerate().map(|(sector_index, sector)| {
-        let sector_lines: Vec<LineDef> = map
-            .linedefs
-            .iter()
-            .enumerate()
-            .filter(|(line_index, linedef)| {
-                if linedef.sidedef_right >= 0 {
-                    let sidedef_right = map.sidedefs[linedef.sidedef_right as usize].clone();
-                    if (sidedef_right.sector as usize) == sector_index {
-                        return true
+    let sectors: Vec<RenderableSector> = map
+        .sectors
+        .iter()
+        .enumerate()
+        .map(|(sector_index, sector)| {
+            let sector_lines: Vec<LineDef> = map
+                .linedefs
+                .iter()
+                .enumerate()
+                .filter(|(line_index, linedef)| {
+                    if linedef.sidedef_right >= 0 {
+                        let sidedef_right = map.sidedefs[linedef.sidedef_right as usize].clone();
+                        if (sidedef_right.sector as usize) == sector_index {
+                            return true;
+                        }
                     }
-                }
-                if linedef.sidedef_left >= 0 {
-                    let sidedef_left = map.sidedefs[linedef.sidedef_left as usize].clone();
-                    if (sidedef_left.sector as usize) == sector_index {
-                        return true
+                    if linedef.sidedef_left >= 0 {
+                        let sidedef_left = map.sidedefs[linedef.sidedef_left as usize].clone();
+                        if (sidedef_left.sector as usize) == sector_index {
+                            return true;
+                        }
                     }
-                }
-                false
-            })
-            .map(|(line_index, linedef)| linedef.clone())
-            .collect();
-        let vertex_lines: Vec<SectorLine> = sector_lines
-            .iter()
-            .map(|linedef| {
-                let v1 = map.vertexes[linedef.vertex_begin as usize];
-                let v2 = map.vertexes[linedef.vertex_end as usize];
+                    false
+                })
+                .map(|(line_index, linedef)| linedef.clone())
+                .collect();
+            let vertex_lines: Vec<SectorLine> = sector_lines
+                .iter()
+                .map(|linedef| {
+                    let v1 = map.vertexes[linedef.vertex_begin as usize];
+                    let v2 = map.vertexes[linedef.vertex_end as usize];
 
-                // Vertexes are stored upside down from what we'd expect, so flip their y coordinate
-                let v1 = Vertex {
-                    y: max_y - (v1.y - min_y),
-                    ..v1
-                };
-                let v2 = Vertex {
-                    y: max_y - (v2.y - min_y),
-                    ..v2
-                };
+                    // Vertexes are stored upside down from what we'd expect, so flip their y coordinate
+                    let v1 = Vertex {
+                        y: max_y - (v1.y - min_y),
+                        ..v1
+                    };
+                    let v2 = Vertex {
+                        y: max_y - (v2.y - min_y),
+                        ..v2
+                    };
 
-                (v1, v2, linedef.clone())
-            })
-            .collect();
-        RenderableSector {
-            linedefs: sector_lines,
-            lines: vertex_lines,
-            sector: sector.clone(),
-        }
-    }).collect();
+                    (v1, v2, linedef.clone())
+                })
+                .collect();
+            RenderableSector {
+                linedefs: sector_lines,
+                lines: vertex_lines,
+                sector: sector.clone(),
+            }
+        })
+        .collect();
 
     // Write it out
-    println!("{} has {} sectors and is {}x{}", &map_name, sectors.len(), width, height);
-    let mut doc = Document::new()
-        .set("viewBox", format!("0 0 {} {}", width, height));
+    println!(
+        "{} has {} sectors and is {}x{}",
+        &map_name,
+        sectors.len(),
+        width,
+        height
+    );
+    let mut doc = Document::new().set("viewBox", format!("0 0 {} {}", width, height));
 
     // Debugging feature: only show a particular subset of sectors; leave empty to include all
     // sectors (as usual).
-    let debugging_sector_filter: Vec<usize> = vec!();
+    let debugging_sector_filter: Vec<usize> = vec![];
 
     for (sector_id, sector) in sectors.iter().enumerate() {
         if !debugging_sector_filter.is_empty() && !debugging_sector_filter.contains(&sector_id) {
@@ -160,9 +176,12 @@ fn extract_map(wad: &Wad, map_name: &str) {
         }
         println!("\nSector {} has {} lines:", sector_id, sector.lines.len());
         for (from_v, to_v, _) in &sector.lines {
-            println!("({}, {}) -> ({}, {})",
-                from_v.x + offset_x, from_v.y + offset_y,
-                to_v.x + offset_x, to_v.y + offset_y
+            println!(
+                "({}, {}) -> ({}, {})",
+                from_v.x + offset_x,
+                from_v.y + offset_y,
+                to_v.x + offset_x,
+                to_v.y + offset_y
             );
         }
 
@@ -179,7 +198,11 @@ fn extract_map(wad: &Wad, map_name: &str) {
             // TODO: There is currently something wrong with this logic, leading to orphan lines not
             // getting added to the path. Sector 0 of E4M9 demonstrates this pretty well.
             if pending_lines.len() < 2 {
-                println!("WARNING: Sector {} only has {} lines left", sector_id, pending_lines.len());
+                println!(
+                    "WARNING: Sector {} only has {} lines left",
+                    sector_id,
+                    pending_lines.len()
+                );
             }
 
             let (initial_v, mut to_v, _) = pending_lines.remove(0);
@@ -188,11 +211,14 @@ fn extract_map(wad: &Wad, map_name: &str) {
                 .move_to((initial_v.x + offset_x, initial_v.y + offset_y))
                 .line_to((to_v.x + offset_x, to_v.y + offset_y));
 
-            while let Some(next_line_idx) = pending_lines.iter().position(|(other_from_v, other_to_v, _)| {
-                // Look for any other lines that share our `to_v` vertex, regardless of direction
-                other_from_v == &to_v
-                || other_to_v == &to_v // handle backwards lines, e.g. E1M1's sector 2
-            }) {
+            while let Some(next_line_idx) =
+                pending_lines
+                    .iter()
+                    .position(|(other_from_v, other_to_v, _)| {
+                        // Look for any other lines that share our `to_v` vertex, regardless of direction
+                        other_from_v == &to_v || other_to_v == &to_v // handle backwards lines, e.g. E1M1's sector 2
+                    })
+            {
                 let prev_v = to_v;
                 let (next_from_v, next_to_v, _) = pending_lines.remove(next_line_idx);
                 if next_to_v == to_v {
@@ -235,11 +261,11 @@ fn extract_map(wad: &Wad, map_name: &str) {
                 .set("y2", to_v.y + offset_y);
             if linedef.sidedef_left < 0 || linedef.sidedef_right < 0 {
                 // one-sided line
-                line = line.set("stroke", "red")
-                    .set("stroke-width", "2");
+                line = line.set("stroke", "red").set("stroke-width", "2");
             } else {
                 // two-sided line
-                line = line.set("stroke", "rgba(255, 0, 0, 0.25)")
+                line = line
+                    .set("stroke", "rgba(255, 0, 0, 0.25)")
                     .set("stroke-width", "1");
             }
             doc = doc.add(line);
@@ -253,7 +279,8 @@ fn extract_map(wad: &Wad, map_name: &str) {
     svg::save(format!("{}.svg", &map_name), &doc).unwrap();
 
     // Save as HTML
-    let html = format!(r#"<!DOCTYPE html>
+    let html = format!(
+        r#"<!DOCTYPE html>
 <html lang="en-US">
 <head>
     <meta charset="utf-8">
@@ -272,7 +299,9 @@ fn extract_map(wad: &Wad, map_name: &str) {
 <body>
     {}
 </body>
-"#, doc.to_string());
+"#,
+        doc.to_string()
+    );
 
     let filename = format!("{}.html", &map_name);
     let mut output = File::create(&filename).expect("Failed to create file");
@@ -280,13 +309,19 @@ fn extract_map(wad: &Wad, map_name: &str) {
         Ok(_) => (),
         Err(error) => panic!("Write failed: {}", error),
     }
-
 }
 
 fn list_maps(wad: &Wad) {
     println!("{} maps:", wad.maps.len());
     for map in &wad.maps {
-        println!("- {} ({} linedefs, {} sectors, {} things, {} vertexes)", map.name, map.linedefs.len(), map.sectors.len(), map.things.len(), map.vertexes.len());
+        println!(
+            "- {} ({} linedefs, {} sectors, {} things, {} vertexes)",
+            map.name,
+            map.linedefs.len(),
+            map.sectors.len(),
+            map.things.len(),
+            map.vertexes.len()
+        );
     }
 }
 
@@ -295,10 +330,17 @@ fn show_info(wad: &Wad) {
         WadType::IWAD => "IWAD",
         WadType::PWAD => "PWAD",
     };
-    println!("{} with {} lumps in its directory:", &wad_type, wad.directory.len());
+    println!(
+        "{} with {} lumps in its directory:",
+        &wad_type,
+        wad.directory.len()
+    );
     for d in &wad.directory {
         if d.size > 0 {
-            println!("- {: <8}\t{} bytes starting at {}", d.name, d.size, d.offset);
+            println!(
+                "- {: <8}\t{} bytes starting at {}",
+                d.name, d.size, d.offset
+            );
         } else {
             println!("- {: <8}\t(empty lump)", d.name);
         }
@@ -316,8 +358,9 @@ fn print_usage_and_exit() {
     println!("  prints a list of the maps in the WAD.");
     println!("- svg [map name]");
     println!("  extracts the given map to an SVG file in the current directory with the filename [map name].svg");
-    println!("  (if no map name is specified, every map in the WAD will be extracted automatically)");
+    println!(
+        "  (if no map name is specified, every map in the WAD will be extracted automatically)"
+    );
 
     exit(255);
 }
-
