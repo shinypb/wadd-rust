@@ -1,6 +1,3 @@
-#![allow(dead_code)]
-#![allow(unused_variables)]
-
 mod wadd;
 
 use std::env;
@@ -17,7 +14,6 @@ use crate::wadd::{LineDef, Sector, Vertex, WadType};
 
 fn main() {
     let args: Vec<String> = env::args().collect();
-    let params = &args[1..];
 
     match args.as_slice() {
         [_, filename] => handle_command(filename, &String::from("info"), &[]),
@@ -105,7 +101,6 @@ fn extract_map(wad: &Wad, map_name: &str) {
     type SectorLine = (Vertex, Vertex, LineDef);
     #[derive(Debug)]
     struct RenderableSector {
-        linedefs: Vec<LineDef>,
         lines: Vec<SectorLine>,
         sector: Sector,
     }
@@ -117,8 +112,7 @@ fn extract_map(wad: &Wad, map_name: &str) {
             let sector_lines: Vec<LineDef> = map
                 .linedefs
                 .iter()
-                .enumerate()
-                .filter(|(line_index, linedef)| {
+                .filter(|linedef| {
                     if linedef.sidedef_right >= 0 {
                         let sidedef_right = map.sidedefs[linedef.sidedef_right as usize].clone();
                         if (sidedef_right.sector as usize) == sector_index {
@@ -133,7 +127,7 @@ fn extract_map(wad: &Wad, map_name: &str) {
                     }
                     false
                 })
-                .map(|(line_index, linedef)| linedef.clone())
+                .map(|linedef| linedef.clone())
                 .collect();
             let vertex_lines: Vec<SectorLine> = sector_lines
                 .iter()
@@ -155,7 +149,6 @@ fn extract_map(wad: &Wad, map_name: &str) {
                 })
                 .collect();
             RenderableSector {
-                linedefs: sector_lines,
                 lines: vertex_lines,
                 sector: sector.clone(),
             }
@@ -225,7 +218,6 @@ fn extract_map(wad: &Wad, map_name: &str) {
                         other_from_v == &to_v || other_to_v == &to_v // handle backwards lines, e.g. E1M1's sector 2
                     })
             {
-                let prev_v = to_v;
                 let (next_from_v, next_to_v, _) = pending_lines.remove(next_line_idx);
                 if next_to_v == to_v {
                     // This line points in the opposite direction that we want, so swap from_v <-> to_v

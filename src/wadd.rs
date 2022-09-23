@@ -63,158 +63,6 @@ pub struct Thing {
     pub spawn_flags: i16,
 }
 
-enum ThingType {
-    Player1Start = 1,
-    Player2Start = 2,
-    Player3Start = 3,
-    Player4Start = 4,
-    BlueCard = 5,
-    YellowCard = 6,
-    SpiderMastermind = 7,
-    Backpack = 8,
-    ShotgunGuy = 9,
-    GibbedMarine = 10,
-    DeathmatchStart = 11,
-    GibbedMarineExtra = 12,
-    RedCard = 13,
-    DeadMarine = 15,
-    Cyberdemon = 16,
-    CellPack = 17,
-    DeadZombieMan = 18,
-    DeadShotgunGuy = 19,
-    DeadDoomImp = 20,
-    DeadDemon = 21,
-    DeadCacodemon = 22,
-    DeadLostSoul = 23,
-    Gibs = 24,
-    DeadStick = 25,
-    LiveStick = 26,
-    HeadOnAstick = 27,
-    HeadsOnAstick = 28,
-    HeadCandles = 29,
-    TallGreenColumn = 30,
-    ShortGreenColumn = 31,
-    TallRedColumn = 32,
-    ShortRedColumn = 33,
-    Candlestick = 34,
-    Candelabra = 35,
-    HeartColumn = 36,
-    SkullColumn = 37,
-    RedSkull = 38,
-    YellowSkull = 39,
-    BlueSkull = 40,
-    EvilEye = 41,
-    FloatingSkull = 42,
-    TorchTree = 43,
-    BlueTorch = 44,
-    GreenTorch = 45,
-    RedTorch = 46,
-    Stalagtite = 47,
-    TechPillar = 48,
-    BloodyTwitch = 49,
-    Meat2 = 50,
-    Meat3 = 51,
-    Meat4 = 52,
-    Meat5 = 53,
-    BigTree = 54,
-    ShortBlueTorch = 55,
-    ShortGreenTorch = 56,
-    ShortRedTorch = 57,
-    Spectre = 58,
-    NonsolidMeat2 = 59,
-    NonsolidMeat4 = 60,
-    NonsolidMeat3 = 61,
-    NonsolidMeat5 = 62,
-    NonsolidTwitch = 63,
-    Archvile = 64,         // Doom 2
-    ChaingunGuy = 65,      // Doom 2
-    Revenant = 66,         // Doom 2
-    Fatso = 67,            // Doom 2
-    Arachnotron = 68,      // Doom 2
-    HellKnight = 69,       // Doom 2
-    BurningBarrel = 70,    // Doom 2
-    PainElemental = 71,    // Doom 2
-    CommanderKeen = 72,    // Doom 2
-    HangNoGuts = 73,       // Doom 2
-    HangBnoBrain = 74,     // Doom 2
-    HangTlookingDown = 75, // Doom 2
-    HangTskull = 76,       // Doom 2
-    HangTlookingUp = 77,   // Doom 2
-    HangTnoBrain = 78,     // Doom 2
-    ColonGibs = 79,        // Doom 2
-    SmallBloodPool = 80,   // Doom 2
-    BrainStem = 81,        // Doom 2
-    SuperShotgun = 82,     // Doom 2
-    Megasphere = 83,       // Doom 2
-    WolfensteinSs = 84,    // Doom 2
-    TechLamp = 85,         // Doom 2
-    TechLamp2 = 86,        // Doom 2
-    BossTarget = 87,       // Doom 2
-    BossBrain = 88,        // Doom 2
-    BossEye = 89,          // Doom 2
-    Zbridge = 118,
-    Shotgun = 2001,
-    Chaingun = 2002,
-    RocketLauncher = 2003,
-    PlasmaRifle = 2004,
-    Chainsaw = 2005,
-    Bfg9000 = 2006,
-    Clip = 2007,
-    Shell = 2008,
-    RocketAmmo = 2010,
-    StimPack = 2011,
-    MediKit = 2012,
-    SoulSphere = 2013,
-    HealthBonus = 2014,
-    ArmorBonus = 2015,
-    GreenArmor = 2018,
-    BlueArmor = 2019,
-    InvulnerabilitySphere = 2022,
-    Berserk = 2023,
-    BlurSphere = 2024,
-    RadSuit = 2025,
-    AllMap = 2026,
-    Column = 2028,
-    ExplosiveBarrel = 2035,
-    Infrared = 2045,
-    RocketBox = 2046,
-    Cell = 2047,
-    ClipBox = 2048,
-    ShellBox = 2049,
-    DoomImp = 3001,
-    Demon = 3002,
-    BaronOfHell = 3003,
-    ZombieMan = 3004,
-    Cacodemon = 3005,
-    LostSoul = 3006,
-    Pistol = 5010,
-    Stalagmite = 5050,
-    StealthArachnotron = 9050, // Doom 2
-    StealthArchvile = 9051,    // Doom 2
-    StealthBaron = 9052,
-    StealthCacodemon = 9053,
-    StealthChaingunGuy = 9054, // Doom 2
-    StealthDemon = 9055,
-    StealthHellKnight = 9056, // Doom 2
-    StealthDoomImp = 9057,
-    StealthFatso = 9058,    // Doom 2
-    StealthRevenant = 9059, // Doom 2
-    StealthShotgunGuy = 9060,
-    StealthZombieMan = 9061,
-    ScriptedMarine = 9100,
-    MarineFist = 9101,
-    MarineBerserk = 9102,
-    MarineChainsaw = 9103,
-    MarinePistol = 9104,
-    MarineShotgun = 9105,
-    MarineSsg = 9106,
-    MarineChaingun = 9107,
-    MarineRocket = 9108,
-    MarinePlasma = 9109,
-    MarineRailgun = 9110,
-    MarineBfg = 9111,
-}
-
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct Vertex {
     pub x: i16,
@@ -229,7 +77,7 @@ pub struct Wad {
 
 impl Wad {
     pub fn open(filename: &str) -> Result<Wad, String> {
-        let mut file = File::open(filename).expect("Failed to open file");
+        let mut file = File::open(filename).map_err(|err| err.to_string())?;
 
         let (wad_type, directory_offset, num_directory_entries) = decode_header(&mut file)?;
         let directory = decode_directory(&mut file, directory_offset, num_directory_entries)?;
@@ -275,12 +123,12 @@ fn decode_header(file: &mut File) -> Result<(WadType, i32, i32), String> {
     let num_directory_entries = i32::from_le_bytes(
         header_buf[4..8]
             .try_into()
-            .expect("Failed to get bytes from buffer"),
+            .map_err(|_| "Failed to get num_directory_entries bytes from buffer")?,
     );
     let directory_offset = i32::from_le_bytes(
         header_buf[8..12]
             .try_into()
-            .expect("Failed to get bytes from buffer"),
+            .map_err(|_| "Failed to get directory_offset bytes from buffer")?,
     );
 
     Ok((wad_type, directory_offset, num_directory_entries))
@@ -308,7 +156,7 @@ fn decode_directory(
         let lump_offset = entry_buf[0..4].try_into().map(i32::from_le_bytes).unwrap();
         let lump_size = entry_buf[4..8].try_into().map(i32::from_le_bytes).unwrap();
         let lump_name = buf_to_string(&entry_buf[8..16])
-            .map_err(|err| format!("Lump {} at offset {} has invalid name", &i, &entry_offset))?;
+            .map_err(|_| format!("Lump {} at offset {} has invalid name", &i, &entry_offset))?;
 
         entries.push(DirectoryEntry {
             name: lump_name,
@@ -349,7 +197,7 @@ fn decode_linedefs(file: &mut File, entry: &DirectoryEntry) -> Result<Vec<LineDe
 
     let mut buf = [0; LINEDEF_SIZE];
     let mut linedefs = vec![];
-    for i in 0..(entry.size / LINEDEF_SIZE as i32) {
+    for _ in 0..(entry.size / LINEDEF_SIZE as i32) {
         file.read_exact(&mut buf).map_err(|err| err.to_string())?;
 
         let ints: Vec<i16> = buf
@@ -386,9 +234,9 @@ fn decode_sectors(file: &mut File, entry: &DirectoryEntry) -> Result<Vec<Sector>
             floor_height: i16::from_le_bytes(buf[0..2].try_into().unwrap()),
             ceiling_height: i16::from_le_bytes(buf[2..4].try_into().unwrap()),
             floor_texture: buf_to_fstr(&buf[4..12])
-                .expect(&format!("Sector {} has invalid floor texture", sector_id)),
+                .map_err(|_| format!("Sector {} has invalid floor texture", sector_id))?,
             ceiling_texture: buf_to_fstr(&buf[12..20])
-                .expect(&format!("Sector {} has invalid ceiling texture", sector_id)),
+                .map_err(|_| format!("Sector {} has invalid ceiling texture", sector_id))?,
             light_level: i16::from_le_bytes(buf[20..22].try_into().unwrap()),
             special: u16::from_le_bytes(buf[22..24].try_into().unwrap()),
             sector_tag: u16::from_le_bytes(buf[24..26].try_into().unwrap()),
@@ -407,7 +255,7 @@ fn decode_sidedefs(file: &mut File, entry: &DirectoryEntry) -> Result<Vec<SideDe
 
     let mut buf = [0; SIDEDEF_SIZE];
     let mut sidedefs = vec![];
-    for sidedef_id in 0..(entry.size / SIDEDEF_SIZE as i32) {
+    for _ in 0..(entry.size / SIDEDEF_SIZE as i32) {
         file.read_exact(&mut buf).map_err(|err| err.to_string())?;
 
         const NO_TEXTURE_PLACEHOLDER: &str = "-";
@@ -439,7 +287,7 @@ fn decode_things(file: &mut File, entry: &DirectoryEntry) -> Result<Vec<Thing>, 
 
     let mut buf = [0; THING_SIZE];
     let mut things = vec![];
-    for i in 0..(entry.size / THING_SIZE as i32) {
+    for _ in 0..(entry.size / THING_SIZE as i32) {
         file.read_exact(&mut buf).map_err(|err| err.to_string())?;
 
         let ints: Vec<i16> = buf
@@ -501,6 +349,7 @@ fn decode_maps(file: &mut File, directory: &Vec<DirectoryEntry>) -> Result<Vec<M
     .collect();
 
     // Collect all of the lumps on a per-map basis
+    // TODO: I don't love this code; revisit it
     let mut map_lumps: HashMap<String, HashMap<String, DirectoryEntry>> = HashMap::new();
     for mut i in 0..directory.len() {
         let d = directory.get(i).unwrap();
