@@ -27,7 +27,13 @@ fn main() {
 }
 
 fn handle_command(filename: &String, command: &str, params: &[String]) {
-    let wad = Wad::open(filename);
+    let wad = match Wad::open(filename) {
+        Ok(wad) => wad,
+        Err(err) => {
+            println!("Error reading WAD: {}", err);
+            std::process::exit(1);
+        }
+    };
 
     match command {
         "info" => show_info(&wad),
